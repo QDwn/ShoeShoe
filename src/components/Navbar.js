@@ -1,6 +1,30 @@
+'use client';
+
 import './Navbar.css';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Navbar() {
+  const [user, setUser] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    // Kiểm tra user từ localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    window.location.href = '/';
+  };
+
+  const toggleDropdown = () => {
+    setShowDropdown(!showDropdown);
+  };
 
   return (
     <nav className="navbar">
@@ -118,8 +142,32 @@ export default function Navbar() {
 
         <a href="/contact" className="navbar-link">Contact</a>
         <a href="/about" className="navbar-link">About</a>
-        <a href="/login" className="navbar-login">Login</a>
-        <a href="/register" className="navbar-register">Register</a>
+
+        {/* Auth Section */}
+        {user ? (
+          <div className="navbar-profile-container">
+            <button className="navbar-profile-btn" onClick={toggleDropdown}>
+              {user.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="navbar-avatar" />
+              ) : (
+                <div className="navbar-avatar-placeholder">{user.name?.[0]?.toUpperCase()}</div>
+              )}
+              <span>{user.name}</span>
+            </button>
+
+            {showDropdown && (
+              <div className="navbar-dropdown">
+                <Link href="/profile" className="dropdown-item">Profile</Link>
+                <button onClick={handleLogout} className="dropdown-item logout-btn">Logout</button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <a href="/login" className="navbar-login">Login</a>
+            <a href="/register" className="navbar-register">Register</a>
+          </>
+        )}
       </div>
     </nav>
   );
