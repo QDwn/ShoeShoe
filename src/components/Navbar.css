@@ -1,0 +1,229 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 40px;
+  background: white;
+  color: black;
+  height: 65px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-logo img {
+  width: 80px;
+}
+
+.navbar-logo h2 {
+  margin: 0;
+}
+
+.navbar-menu {
+    margin-right: 20px;
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+.navbar-login{
+    margin-left: 300px;
+}
+
+.navbar-link {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.navbar-link:hover {
+  color: #666;
+}
+
+.menu-item {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+    height: 65px;
+    display: flex;
+    align-items: center;
+}
+
+.menu-item:hover .submenu-products,
+.menu-item:hover .submenu-man,
+.menu-item:hover .submenu-woman {
+  display: flex;
+}
+
+.submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  min-width: 200px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  padding: 10px 0;
+  border-radius: 4px;
+  display: none;
+  z-index: 999;
+  margin-top: 0;
+}
+
+/* Mega Menu for Products */
+.submenu-products {
+  position: fixed;
+  top: 65px;
+  left: 0;
+  right: 0;
+  background: white;
+  color: black;
+  width: 100vw;
+  display: none;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 40px 0;
+  margin-top: 0;
+}
+
+.submenu-products-wrapper {
+  display: grid;
+  grid-template-columns: repeat(4, 200px);
+  gap: 40px;
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 40px;
+  margin-left: 250px;
+}
+
+.submenu-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.submenu-column h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: black;
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.submenu-item {
+    width: 100%;
+    display: block;
+    padding: 10px 20px;
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.submenu-item:hover {
+  background: #f0f0f0;
+}
+
+/* Submenu items in mega menu */
+.submenu-products .submenu-item {
+  display: block;
+  padding: 8px 0;
+  margin: 0;
+  color: #555;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  background: none;
+}
+
+.submenu-products .submenu-item:hover {
+  color: black;
+  background: #f9f9f9;
+  padding-left: 5px;
+}
+
+/* Submenu items in Man/Woman mega menus */
+.submenu-man .submenu-item,
+.submenu-woman .submenu-item {
+  display: block;
+  padding: 8px 0;
+  margin: 0;
+  color: #555;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  background: none;
+}
+
+.submenu-man .submenu-item:hover,
+.submenu-woman .submenu-item:hover {
+  color: black;
+  background: #f9f9f9;
+  padding-left: 5px;
+}
+
+/* Column headings in all mega menus */
+.submenu-man .submenu-column h4,
+.submenu-woman .submenu-column h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: black;
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.submenu-man,
+.submenu-woman {
+  position: fixed;
+  top: 65px;
+  left: 0;
+  right: 0;
+  background: white;
+  color: black;
+  width: 100vw;
+  display: none;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 40px 0;
+  margin-top: 0;
+}
+
+.submenu-wrapper {
+  display: grid;
+  grid-template-columns: repeat(4, 200px);
+  gap: 40px;
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 40px;
+  margin-left: 250px;
+}
+
+.navbar-auth {
+  margin-left: 100px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 15px 20px;
+  }
+
+  .navbar-menu {
+    gap: 15px;
+  }
+
+  .navbar-auth {
+    margin-left: 20px;
+  }
+}

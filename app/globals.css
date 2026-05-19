@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  padding-top: 65px;
+}
+.khung {
+  position: relative;
+  margin: 20px;
+  height: 700px;
+
+}
+.imghome {
+  border-radius: 10px;
+  width: 100%;
+  height: 100%;
+}
+.btnleft{
+  position: absolute;
+  bottom: 20px;
+  right: 85px;
+  padding: 12px 20px;
+  background: white;
+  color: black;
+  border-radius: 200px;
+  cursor: pointer;
+}
+.btnright{
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  padding: 12px 20px;
+  background: white;
+  color: black;
+  border-radius: 200px;
+  cursor: pointer;
+}
+.circleBtn{
+  position: absolute;
+  bottom: 20px;
+  right: 140px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.Featured{
+  font-size: 20px;
+  width: 95%;
+  margin: auto;
+}
+.Featured h1{
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  margin-top: 40px;
+}
+
+.featuredGrid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.featuredItem{
+  position: relative;
+  border: 1.1px solid rgb(95, 93, 93);
+  border-radius: 10px;
+}
+
+.featuredItem img{
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.featuredContent{
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  color: black;
+}
+
+.featuredContent h2{
+  margin-bottom: 10px;
+}
+
+.featuredContent button{
+  padding: 10px 18px;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 5px;
+  border: 1px solid  rgb(95, 93, 93);
+}
+.collection{
+  width: 95%;
+  margin: auto;
+}
+.collection h1{
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  margin-top: 40px;
+}
+.collectionScroll{
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;      
+  padding-bottom: 10px;
+}
+
+.productCard{
+  min-width: 200px;      
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  flex-shrink: 0;       
+}
+
+.productCard img{
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.Shopbycategory h1{
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  margin-top: 40px;
+  margin-left: 34px;
+}
+.shopcategory{
+  width:98%;
+  margin:auto;
+}
+
+.categoryScroll{
+  display:flex;
+  gap:25px;
+  overflow-x:auto;
+  padding-bottom:10px;
+}
+
+.categoryCard{
+  min-width:420px;   
+  flex-shrink:0;
+  position:relative;
+}
+
+.categoryCard img{
+  width:100%;
+  height:550px;
+  object-fit:cover;
+}
+
+.categoryCard h2{
+  position:absolute;
+  bottom:20px;
+  left:20px;
+  color:white;
+  font-size:22px;
+}
+.categoryCard h3{
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
