@@ -36,39 +36,38 @@ export default function Navbar() {
 
       {/* Menu */}
       <div className="navbar-menu">
-        <a href="/" className="navbar-link">Home</a>
+        <Link href="/" className="navbar-link">Home</Link>
 
         {/* Products Dropdown */}
         <div className="menu-item">
-          <div className="menu-item-label">Products</div>
+          <Link href="/products" className="menu-item-label">Products</Link>
           <div className="submenu-products">
             <div className="submenu-products-wrapper">
               <div className="submenu-column">
                 <h4>Featured</h4>
-                <a href="/products?featured=new" className="submenu-item">New Arrivals</a>
-                <a href="/products?featured=limited" className="submenu-item">Limited Edition</a>
-                <a href="/products?featured=allstar" className="submenu-item">All Star 2026</a>
+                <Link href="/products?featured=new" className="submenu-item">New Arrivals</Link>
+                <Link href="/products?featured=limited" className="submenu-item">Limited Edition</Link>
+                <Link href="/products?category=NBA All-Star" className="submenu-item">NBA All Star</Link>
               </div>
               <div className="submenu-column">
                 <h4>Trending</h4>
-                <a href="/products?trend=best" className="submenu-item">Best Sellers</a>
-                <a href="/products?trend=hot" className="submenu-item">Hot This Week</a>
-                <a href="/products?trend=rated" className="submenu-item">Top Rated</a>
+                <Link href="/products?trend=best" className="submenu-item">Best Sellers</Link>
+                <Link href="/products?trend=hot" className="submenu-item">Hot This Week</Link>
+                <Link href="/products?trend=rated" className="submenu-item">Top Rated</Link>
               </div>
               <div className="submenu-column">
                 <h4>Brand</h4>
-                <a href="/products?brand=lebron" className="submenu-item">LeBron</a>
-                <a href="/products?brand=curry" className="submenu-item">Curry</a>
-                <a href="/products?brand=jordan" className="submenu-item">Jordan</a>
-                <a href="/products?brand=lamelo" className="submenu-item">Lamelo</a>
-                <a href="/products?brand=sabrina" className="submenu-item">Sabrina</a>
+                <Link href="/products?category=LeBron James" className="submenu-item">LeBron</Link>
+                <Link href="/products?category=Stephen Curry" className="submenu-item">Curry</Link>
+                <Link href="/products?category=Lamelo Ball" className="submenu-item">Lamelo</Link>
+                <Link href="/products?category=Sabrina" className="submenu-item">Sabrina</Link>
               </div>
               <div className="submenu-column">
                 <h4>Categories</h4>
-                <a href="/products?category=baseball" className="submenu-item">Baseball Shoes</a>
-                <a href="/products?category=jerseys" className="submenu-item">Jerseys</a>
-                <a href="/products?category=socks" className="submenu-item">Socks</a>
-                <a href="/products?category=accessories" className="submenu-item">Accessories</a>
+                <Link href="/products?category=Basketball%20Shoes" className="submenu-item">Basketball Shoes</Link>
+                <Link href="/products?category=Jersey" className="submenu-item">Jerseys</Link>
+                <Link href="/products?category=Socks" className="submenu-item">Socks</Link>
+                <Link href="/products?category=Accessories" className="submenu-item">Accessories</Link>
               </div>
             </div>
           </div>
