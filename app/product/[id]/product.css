@@ -252,6 +252,59 @@
   cursor: not-allowed;
 }
 
+/* Size selector grid */
+.size-selector { flex-direction: column; align-items: flex-start; }
+.size-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.size-button { padding: 10px 14px; border: 1px solid #ddd; background: #f7f7f7; border-radius: 6px; cursor: pointer; font-weight:700; }
+.size-button.selected { background: black; color: white; }
+.size-button.disabled { opacity: 0.4; cursor: not-allowed; }
+.size-meta { margin-top: 10px; display: flex; gap: 12px; align-items: center; }
+.size-meta .in-stock { color: #27ae60; font-weight:700; }
+.size-meta .low-stock { color: #e67e22; font-weight:700; }
+.size-meta .out-of-stock { color: #e74c3c; font-weight:700; }
+.size-guide-link { margin-left: 8px; background: transparent; border: none; color: #0a58ca; text-decoration: underline; cursor: pointer; }
+
+/* Size guide modal */
+.size-guide-modal { position: fixed; inset: 0; display: flex; justify-content: flex-end; z-index: 1200; }
+.size-guide-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 1198; }
+.size-guide-panel { position: relative; width: 420px; max-width: 95%; height: 100%; background: #fff; padding: 24px; overflow: auto; box-shadow: -8px 0 24px rgba(0,0,0,0.2); z-index: 1199; resize: horizontal; min-width: 320px; max-width: 95vw; }
+.shirt-guide-panel { background: #fff; color: inherit; }
+.shirt-guide-panel .guide-intro,
+.shirt-guide-panel .guide-footer,
+.shirt-guide-panel h2,
+.shirt-guide-panel p,
+.shirt-guide-panel th,
+.shirt-guide-panel td { color: inherit; }
+.shirt-guide-panel .guide-table-wrap { border-color: #ddd; }
+.shirt-guide-panel .guide-table th,
+.shirt-guide-panel .guide-table td { border-color: #eee; }
+.shirt-guide-panel .guide-table thead th { background: #f4f4f4; }
+.shirt-guide-panel .guide-table tbody td:first-child { background: #fafafa; }
+.shirt-guide-panel .close-guide { color: inherit; }
+
+.guide-table-scroll { overflow: auto; }
+.guide-table { border-collapse: collapse; width: 100%; min-width: 800px; }
+.guide-table th, .guide-table td { border: 1px solid #eee; padding: 14px 18px; text-align: center; }
+.guide-table thead th { background: #f4f4f4; font-weight: 700; }
+.guide-table tbody td:first-child { text-align: left; font-weight: 700; background: #fafafa; }
+
+/* Shirt guide uses the same table styling as the shoe guide */
+
+/* Left resizer handle */
+.size-resizer { position: absolute; left: -12px; top: 0; bottom: 0; width: 24px; cursor: ew-resize; z-index: 1201; }
+.size-resizer:before { content: ''; position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 4px; height: 60px; background: rgba(0,0,0,0.12); border-radius: 2px; }
+
+/* Ensure panel is not blocked by backdrop when resizing */
+.size-guide-modal .size-guide-panel { pointer-events: auto; }
+.size-guide-modal .size-guide-backdrop { pointer-events: auto; }
+.size-guide-panel h2 { margin-top: 0; }
+.close-guide { position: absolute; top: 12px; right: 12px; border: none; background: transparent; font-size: 20px; cursor: pointer; }
+.guide-table-wrap { overflow: auto; border: 1px dashed #ddd; padding: 12px; margin: 12px 0; }
+.guide-table { border-collapse: collapse; width: 100%; min-width: 540px; }
+.guide-table th, .guide-table td { border: 1px solid #eee; padding: 8px 12px; text-align: center; }
+.guide-intro { color: #666; }
+.guide-footer h4 { margin: 12px 0 6px 0; }
+
 /* Shipping Info */
 .detail-shipping {
   display: flex;

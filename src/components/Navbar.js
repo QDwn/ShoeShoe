@@ -2,11 +2,13 @@
 
 import './Navbar.css';
 import { useState, useEffect } from 'react';
+import { useCart } from '../context/CartContext';
 import Link from 'next/link';
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const { getCount } = useCart();
 
   useEffect(() => {
     // Kiểm tra user từ localStorage
@@ -31,7 +33,6 @@ export default function Navbar() {
       {/* Logo */}
       <div className="navbar-logo">
         <img src="/logo.jpg" alt="Logo" />
-        <h2>Shoe Store</h2>
       </div>
 
       {/* Menu */}
@@ -166,6 +167,12 @@ export default function Navbar() {
             <a href="/login" className="navbar-login">Login</a>
             <a href="/register" className="navbar-register">Register</a>
           </>
+        )}
+        {/* Cart icon for logged-in users */}
+        {user && (
+          <div className="navbar-cart">
+            <Link href="/cart" className="navbar-cart-link">Cart ({getCount()})</Link>
+          </div>
         )}
       </div>
     </nav>

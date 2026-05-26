@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import AddToCartButton from '../../src/components/AddToCartButton';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '../../src/components/Navbar';
 import './products.css';
@@ -13,6 +14,7 @@ export default function ProductsPage() {
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -56,6 +58,9 @@ export default function ProductsPage() {
   const fetchCategories = async () => {
     try {
       const response = await fetch('/api/categories');
+      if (!response.ok) {
+        throw new Error(`Categories request failed (${response.status})`);
+      }
       const data = await response.json();
       if (data.categories && Array.isArray(data.categories)) {
         setCategories(data.categories);
@@ -67,6 +72,7 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     setLoading(true);
+    setError('');
     try {
       let url = `/api/products?limit=${itemsPerPage}&offset=${(currentPage - 1) * itemsPerPage}`;
 
@@ -80,6 +86,17 @@ export default function ProductsPage() {
       }
 
       const response = await fetch(url);
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Products request failed (${response.status}): ${text.slice(0, 120)}`);
+      }
+
+      if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Products API returned non-JSON response: ${text.slice(0, 120)}`);
+      }
+
       const data = await response.json();
       
       if (data.products && Array.isArray(data.products)) {
@@ -90,6 +107,7 @@ export default function ProductsPage() {
     } catch (error) {
       console.error('Error fetching products:', error);
       setProducts([]);
+      setError(error.message || 'Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -178,6 +196,8 @@ export default function ProductsPage() {
         <div className="products-main">
           {loading ? (
             <div className="products-loading">Loading products...</div>
+          ) : error ? (
+            <div className="products-empty">{error}</div>
           ) : (!products || products.length === 0) ? (
             <div className="products-empty">No products found</div>
           ) : (
@@ -189,13 +209,11 @@ export default function ProductsPage() {
               {/* Products Grid */}
               <div className="products-grid">
                 {products && Array.isArray(products) && products.map((product) => (
-                  <Link
-                    href={`/product/${product.id}`}
-                    key={product.id}
-                    className="product-card"
-                  >
+                  <div key={product.id} className="product-card">
                     <div className="product-image">
-                      <img src={product.image_url} alt={product.name} />
+                      <Link href={`/product/${product.id}`}>
+                        <img src={product.image_url} alt={product.name} />
+                      </Link>
                       {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
                         <div className="product-badge">Only {product.stock_quantity} left!</div>
                       )}
@@ -210,15 +228,17 @@ export default function ProductsPage() {
                           <span key={index} className="product-category">{cat}</span>
                         ))}
                       </div>
-                      <h3>{product.name}</h3>
+                      <h3>
+                        <Link href={`/product/${product.id}`}>{product.name}</Link>
+                      </h3>
                       <p className="product-description">{product.description.substring(0, 60)}...</p>
                       
                       <div className="product-footer">
                         <span className="product-price">${parseFloat(product.price).toFixed(2)}</span>
-                        <button className="add-to-cart-btn">Add to Cart</button>
+                        <AddToCartButton product={product} />
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
 

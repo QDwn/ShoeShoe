@@ -4,6 +4,8 @@ import Navbar from "../src/components/Navbar"
 import FeaturedProducts from "../src/components/FeaturedProducts"
 import LatestCollection from "../src/components/LatestCollection"
 import ShopByCategory from "../src/components/ShopByCategory"
+import PreFooterStrip from "../src/components/PreFooterStrip"
+import BasketballFooter from "../src/components/BasketballFooter"
 
 export default function HomeImage(){
 
@@ -110,6 +112,10 @@ export default function HomeImage(){
         <h1>Shop by Basketball</h1>
         <ShopByCategory />
       </div>
+
+      <PreFooterStrip />
+      
+      <BasketballFooter />
     </div>
 
   )
