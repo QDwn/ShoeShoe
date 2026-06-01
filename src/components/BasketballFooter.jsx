@@ -45,7 +45,7 @@ const socialLinks = [
 const introLinks = [
   { label: 'About Us', href: '/about' },
   { label: 'Privacy Policy', href: '/privacy-policy' },
-  { label: 'Terms of Use', href: '/terms-of-use' },
+  { label: 'Terms of Service', href: '/terms-of-service' },
   { label: 'FAQ', href: '/faq' },
 ];
 
@@ -66,7 +66,7 @@ export default function BasketballFooter() {
         <div className="footer-top">
           <div className="footer-brand-panel">
             <div className="footer-brand">
-              <img src="/logo.jpg" alt="ShoeShoe" className="footer-logo" />
+              <img src="/logo.png" alt="ShoeShoe" className="footer-logo" />
               <div>
                 <p className="footer-kicker">ShoeShoe Basketball</p>
                 <h2>Gear up for every possession</h2>
@@ -123,6 +123,9 @@ export default function BasketballFooter() {
 
         <div className="footer-bottom">
           <p>© 2026 ShoeShoe. Basketball gear for the court and everyday life.</p>
+        </div>
+        <div className="location">
+          <p>175 P. Tay Son, Kim Lien, Ha Noi, Viet Nam</p>
         </div>
       </div>
     </footer>

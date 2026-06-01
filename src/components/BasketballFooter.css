@@ -1,6 +1,6 @@
 .basketball-footer {
   position: relative;
-  margin: 72px 20px 24px;
+  margin: 0px 20px 24px;
   border-radius: 28px;
   overflow: hidden;
   color: #f5f2eb;
@@ -279,6 +279,17 @@
 
 .footer-bottom p {
   margin: 0;
+  color: rgba(245, 242, 235, 0.72);
+  font-size: 14px;
+}
+
+.location{
+  position: relative;
+  margin-left: 1080px;
+  margin-top: -20px;
+}
+
+.location p {
   color: rgba(245, 242, 235, 0.72);
   font-size: 14px;
 }

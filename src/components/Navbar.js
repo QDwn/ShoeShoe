@@ -4,11 +4,13 @@ import './Navbar.css';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const { getCount } = useCart();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Kiểm tra user từ localStorage
@@ -28,131 +30,48 @@ export default function Navbar() {
     setShowDropdown(!showDropdown);
   };
 
+  const isActive = (href) => pathname === href || pathname.startsWith(`${href}/`);
+
+  const menuItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Products', href: '/products' },
+    { label: 'Stores', href: '/stores' },
+    { label: 'About', href: '/about' },
+  ];
+
   return (
     <nav className="navbar">
-      {/* Logo */}
-      <div className="navbar-logo">
-        <img src="/logo.jpg" alt="Logo" />
+      <div className="navbar-left">
+        {menuItems.map((item) => (
+          <Link key={item.label} href={item.href} className={`navbar-link ${isActive(item.href) ? 'is-active' : ''}`}>
+            {item.label}
+          </Link>
+        ))}
       </div>
 
-      {/* Menu */}
-      <div className="navbar-menu">
-        <Link href="/" className="navbar-link">Home</Link>
+      <div className="navbar-brand">
+        <Link href="/" className="navbar-logo" aria-label="Go to home">
+          <img src="/logo.png" alt="Grind Hoops" />
+        </Link>
+      </div>
 
-        {/* Products Dropdown */}
-        <div className="menu-item">
-          <Link href="/products" className="menu-item-label">Products</Link>
-          <div className="submenu-products">
-            <div className="submenu-products-wrapper">
-              <div className="submenu-column">
-                <h4>Featured</h4>
-                <Link href="/products?featured=new" className="submenu-item">New Arrivals</Link>
-                <Link href="/products?featured=limited" className="submenu-item">Limited Edition</Link>
-                <Link href="/products?category=NBA All-Star" className="submenu-item">NBA All Star</Link>
-              </div>
-              <div className="submenu-column">
-                <h4>Trending</h4>
-                <Link href="/products?trend=best" className="submenu-item">Best Sellers</Link>
-                <Link href="/products?trend=hot" className="submenu-item">Hot This Week</Link>
-                <Link href="/products?trend=rated" className="submenu-item">Top Rated</Link>
-              </div>
-              <div className="submenu-column">
-                <h4>Brand</h4>
-                <Link href="/products?category=LeBron James" className="submenu-item">LeBron</Link>
-                <Link href="/products?category=Stephen Curry" className="submenu-item">Curry</Link>
-                <Link href="/products?category=Lamelo Ball" className="submenu-item">Lamelo</Link>
-                <Link href="/products?category=Sabrina" className="submenu-item">Sabrina</Link>
-              </div>
-              <div className="submenu-column">
-                <h4>Categories</h4>
-                <Link href="/products?category=Basketball%20Shoes" className="submenu-item">Basketball Shoes</Link>
-                <Link href="/products?category=Jersey" className="submenu-item">Jerseys</Link>
-                <Link href="/products?category=Socks" className="submenu-item">Socks</Link>
-                <Link href="/products?category=Accessories" className="submenu-item">Accessories</Link>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="navbar-right">
+        <button className="navbar-icon-button" type="button" aria-label="Search">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10.5 4a6.5 6.5 0 1 0 4.1 11.5l4.4 4.4 1.4-1.4-4.4-4.4A6.5 6.5 0 0 0 10.5 4Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z" />
+          </svg>
+        </button>
 
-        {/* Man Dropdown */}
-        <div className="menu-item">
-          <div className="menu-item-label">Man</div>
-          <div className="submenu-man">
-            <div className="submenu-wrapper">
-              <div className="submenu-column">
-                <h4>Categories</h4>
-                <a href="/man/shoes" className="submenu-item">Shoes</a>
-                <a href="/man/boots" className="submenu-item">Boots</a>
-                <a href="/man/sandals" className="submenu-item">Sandals</a>
-              </div>
-              <div className="submenu-column">
-                <h4>Style</h4>
-                <a href="/man/casual" className="submenu-item">Casual</a>
-                <a href="/man/athletic" className="submenu-item">Athletic</a>
-                <a href="/man/formal" className="submenu-item">Formal</a>
-              </div>
-              <div className="submenu-column">
-                <h4>Size</h4>
-                <a href="/man/size-small" className="submenu-item">Small (6-8)</a>
-                <a href="/man/size-medium" className="submenu-item">Medium (9-11)</a>
-                <a href="/man/size-large" className="submenu-item">Large (12+)</a>
-              </div>
-              <div className="submenu-column">
-                <h4>Price</h4>
-                <a href="/man/budget" className="submenu-item">Under $50</a>
-                <a href="/man/standard" className="submenu-item">$50-$100</a>
-                <a href="/man/premium" className="submenu-item">$100+</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Woman Dropdown */}
-        <div className="menu-item">
-          <div className="menu-item-label">Woman</div>
-          <div className="submenu-woman">
-            <div className="submenu-wrapper">
-              <div className="submenu-column">
-                <h4>Categories</h4>
-                <a href="/woman/shoes" className="submenu-item">Shoes</a>
-                <a href="/woman/boots" className="submenu-item">Boots</a>
-                <a href="/woman/heels" className="submenu-item">Heels</a>
-              </div>
-              <div className="submenu-column">
-                <h4>Style</h4>
-                <a href="/woman/casual" className="submenu-item">Casual</a>
-                <a href="/woman/athletic" className="submenu-item">Athletic</a>
-                <a href="/woman/elegant" className="submenu-item">Elegant</a>
-              </div>
-              <div className="submenu-column">
-                <h4>Size</h4>
-                <a href="/woman/size-small" className="submenu-item">Small (5-7)</a>
-                <a href="/woman/size-medium" className="submenu-item">Medium (8-10)</a>
-                <a href="/woman/size-large" className="submenu-item">Large (11+)</a>
-              </div>
-              <div className="submenu-column">
-                <h4>Price</h4>
-                <a href="/woman/budget" className="submenu-item">Under $50</a>
-                <a href="/woman/standard" className="submenu-item">$50-$100</a>
-                <a href="/woman/premium" className="submenu-item">$100+</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <a href="/contact" className="navbar-link">Contact</a>
-        <a href="/about" className="navbar-link">About</a>
-
-        {/* Auth Section */}
         {user ? (
           <div className="navbar-profile-container">
-            <button className="navbar-profile-btn" onClick={toggleDropdown}>
+            <button className="navbar-icon-button" onClick={toggleDropdown} type="button" aria-label="Account">
               {user.avatar ? (
-                <img src={user.avatar} alt="Avatar" className="navbar-avatar" />
+                <img src={user.avatar} alt="Avatar" className="navbar-avatar navbar-avatar-icon" />
               ) : (
-                <div className="navbar-avatar-placeholder">{user.name?.[0]?.toUpperCase()}</div>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" />
+                </svg>
               )}
-              <span>{user.name}</span>
             </button>
 
             {showDropdown && (
@@ -163,18 +82,22 @@ export default function Navbar() {
             )}
           </div>
         ) : (
-          <>
-            <a href="/login" className="navbar-login">Login</a>
-            <a href="/register" className="navbar-register">Register</a>
-          </>
+          <Link href="/login" className="navbar-icon-button" aria-label="Login">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" />
+            </svg>
+          </Link>
         )}
-        {/* Cart icon for logged-in users */}
-        {user && (
-          <div className="navbar-cart">
-            <Link href="/cart" className="navbar-cart-link">Cart ({getCount()})</Link>
-          </div>
-        )}
+
+        <Link href="/cart" className="navbar-icon-button navbar-cart-link" aria-label={`Cart (${getCount()})`}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 18.5A1.5 1.5 0 1 0 8.5 20 1.5 1.5 0 0 0 7 18.5Zm10 0A1.5 1.5 0 1 0 18.5 20 1.5 1.5 0 0 0 17 18.5ZM6.2 6l.4 2H20l-1.3 6.2a2 2 0 0 1-2 1.6H9a2 2 0 0 1-2-1.6L5.2 4H2V2h4a1 1 0 0 1 1 .8L7.4 6Z" />
+          </svg>
+          <span className="navbar-cart-count">{getCount()}</span>
+        </Link>
       </div>
+
+      <div className="navbar-mobile-spacer" />
     </nav>
   );
 }
