@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../../src/components/Navbar';
+import BasketballFooter from '../../../src/components/BasketballFooter';
 import { useCart } from '../../../src/context/CartContext';
+import { useLanguage } from '../../../src/context/LanguageContext';
 import '../../products/products.css';
 import './product.css';
 
@@ -24,6 +26,9 @@ export default function ProductDetailPage() {
   const [error, setError] = useState('');
   const [addedToCart, setAddedToCart] = useState(false);
   const { addItem } = useCart();
+  const { t } = useLanguage();
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
 
   const productText = `${product?.name || ''} ${(product?.categories || []).join(' ')}`.toLowerCase();
   const sizeOptionsLookLikeShirt = sizeOptions.some((size) => /^(xs|s|m|l|xl|xxl|2xl|3xl)$/i.test(String(size).trim())) || sizeOptions.some((size) => /y$/i.test(String(size).trim()));
@@ -39,10 +44,10 @@ export default function ProductDetailPage() {
       ? false
       : /shoe|sneaker|boot|running|football/i.test(productText);
   const sizeGuideLabel = isShirtProduct
-    ? 'Jersey size guide'
+    ? t('productDetail.jerseySizeGuide')
     : isShoeProduct
-      ? 'Shoe size guide'
-      : 'Size guide';
+      ? t('productDetail.shoeSizeGuide')
+      : t('productDetail.sizeGuide');
 
   useEffect(() => {
     fetchProduct();
@@ -85,6 +90,72 @@ export default function ProductDetailPage() {
     })();
   }, [product]);
 
+  useEffect(() => {
+    if (!product) return;
+
+    let cancelled = false;
+    const maxResults = 8;
+
+    async function fetchRelated() {
+      setRelatedLoading(true);
+      try {
+        const name = (product.name || '').trim();
+        const resultsMap = new Map();
+
+        // First try search by full name
+        if (name.length > 0) {
+          const res = await fetch(`/api/products?search=${encodeURIComponent(name)}&limit=20`);
+          if (res.ok) {
+            const body = await res.json();
+            (body.products || []).forEach(p => {
+              if (p.id !== product.id) resultsMap.set(p.id, p);
+            });
+          }
+        }
+
+        // If not enough, try tokenized queries (long tokens only)
+        if (resultsMap.size < maxResults) {
+          const tokens = (product.name || '').toLowerCase().split(/[^a-z0-9]+/i).filter(t => t && t.length > 3);
+          for (const token of tokens) {
+            if (resultsMap.size >= maxResults) break;
+            try {
+              const res = await fetch(`/api/products?search=${encodeURIComponent(token)}&limit=20`);
+              if (!res.ok) continue;
+              const body = await res.json();
+              (body.products || []).forEach(p => {
+                if (p.id !== product.id && !resultsMap.has(p.id)) resultsMap.set(p.id, p);
+              });
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
+
+        // Convert to array and score by simple token-overlap similarity
+        const candidates = Array.from(resultsMap.values());
+        const baseTokens = (product.name || '').toLowerCase().split(/[^a-z0-9]+/i).filter(Boolean);
+        function score(p) {
+          const pt = (p.name || '').toLowerCase().split(/[^a-z0-9]+/i).filter(Boolean);
+          let common = 0;
+          for (const bt of baseTokens) if (pt.includes(bt)) common++;
+          return common + (p.categories && p.categories.includes((product.categories||[])[0]) ? 0.5 : 0);
+        }
+
+        candidates.sort((a, b) => score(b) - score(a));
+
+        if (!cancelled) setRelatedProducts(candidates.slice(0, maxResults));
+      } catch (err) {
+        console.error('Related fetch error', err);
+      } finally {
+        if (!cancelled) setRelatedLoading(false);
+      }
+    }
+
+    fetchRelated();
+
+    return () => { cancelled = true; };
+  }, [product]);
+
   const fetchProduct = async () => {
     if (!productId) return;
     
@@ -95,11 +166,11 @@ export default function ProductDetailPage() {
       if (response.ok && data.product) {
         setProduct(data.product);
       } else {
-        setError(data.message || 'Product not found');
+        setError(data.message || t('productDetail.notFound'));
       }
     } catch (err) {
       console.error('Error:', err);
-      setError('Failed to load product');
+      setError(t('productDetail.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -152,8 +223,8 @@ export default function ProductDetailPage() {
 
   const renderShoeSizeGuide = () => (
     <>
-      <h2>SIZE GUIDE</h2>
-      <p className="guide-intro">Men's and women's footwear sizing — scroll to see full table.</p>
+      <h2>{t('productDetail.sizeGuide').toUpperCase()}</h2>
+      <p className="guide-intro">{t('productDetail.shoeSizeIntro')}</p>
       <div className="guide-table-wrap">
         <div className="guide-table-scroll">
           <table className="guide-table">
@@ -174,7 +245,7 @@ export default function ProductDetailPage() {
             </thead>
             <tbody>
               <tr>
-                <td>US - Men</td>
+                <td>{t('productDetail.sizeLabels.men')}</td>
                 <td>3.5</td>
                 <td>4</td>
                 <td>4.5</td>
@@ -187,7 +258,7 @@ export default function ProductDetailPage() {
                 <td>8</td>
               </tr>
               <tr>
-                <td>US - Women</td>
+                <td>{t('productDetail.sizeLabels.women')}</td>
                 <td>5</td>
                 <td>5.5</td>
                 <td>6</td>
@@ -200,7 +271,7 @@ export default function ProductDetailPage() {
                 <td>9.5</td>
               </tr>
               <tr>
-                <td>US - Kids</td>
+                <td>{t('productDetail.sizeLabels.kids')}</td>
                 <td>3.5Y</td>
                 <td>4Y</td>
                 <td>4.5Y</td>
@@ -252,7 +323,7 @@ export default function ProductDetailPage() {
                 <td>41</td>
               </tr>
               <tr>
-                <td>Foot Length (cm)</td>
+                <td>{t('productDetail.sizeLabels.footLength')}</td>
                 <td>21.6</td>
                 <td>22</td>
                 <td>22.4</td>
@@ -269,24 +340,24 @@ export default function ProductDetailPage() {
         </div>
       </div>
       <div className="guide-footer">
-        <h4>In between sizes?</h4>
-        <p>For tight fit, go one size down. For a loose fit, go one size up.</p>
+        <h4>{t('productDetail.inBetweenSizes')}</h4>
+        <p>{t('productDetail.shoeSizeAdvice')}</p>
       </div>
     </>
   );
 
   const renderShirtSizeGuide = () => (
     <>
-      <h2>Size Chart</h2>
-      <p className="guide-intro">Men's Basketball jersey size reference chart.</p>
+      <h2>{t('productDetail.sizeChart')}</h2>
+      <p className="guide-intro">{t('productDetail.jerseyIntro')}</p>
       <div className="guide-table-wrap">
         <table className="guide-table">
           <thead>
             <tr>
-              <th>Size</th>
-              <th>Height</th>
-              <th>Weight</th>
-              <th>Chest Width</th>
+              <th>{t('productDetail.sizeGuideHeaders.size')}</th>
+              <th>{t('productDetail.sizeGuideHeaders.height')}</th>
+              <th>{t('productDetail.sizeGuideHeaders.weight')}</th>
+              <th>{t('productDetail.sizeGuideHeaders.chestWidth')}</th>
             </tr>
           </thead>
           <tbody>
@@ -324,14 +395,14 @@ export default function ProductDetailPage() {
         </table>
       </div>
 
-      <h2>Women's Basketball Jersey Size Chart</h2>
+      <h2>{t('productDetail.womensJerseySizeChart')}</h2>
       <div className="guide-table-wrap">
         <table className="guide-table">
           <thead>
             <tr>
-              <th>Size</th>
-              <th>Height</th>
-              <th>Weight</th>
+              <th>{t('productDetail.sizeGuideHeaders.size')}</th>
+              <th>{t('productDetail.sizeGuideHeaders.height')}</th>
+              <th>{t('productDetail.sizeGuideHeaders.weight')}</th>
             </tr>
           </thead>
           <tbody>
@@ -364,15 +435,15 @@ export default function ProductDetailPage() {
   // sizeOptions and sizeStocks filled by effect above
 
   if (loading) {
-    return <div className="product-loading">Loading product...</div>;
+    return <div className="product-loading">{t('productDetail.loading')}</div>;
   }
 
   if (error || !product) {
     return (
       <div className="product-error">
-        <p>{error || 'Product not found'}</p>
+        <p>{error || t('productDetail.notFound')}</p>
         <Link href="/products" className="back-to-products">
-          ← Back to Products
+          {t('productDetail.backToProducts')}
         </Link>
       </div>
     );
@@ -383,7 +454,7 @@ export default function ProductDetailPage() {
     <div className="product-detail-container">
       <Navbar />
       <div className="product-detail-header">
-        <Link href="/products" className="back-link">← Back to Products</Link>
+        <Link href="/products" className="back-link">{t('productDetail.backToProducts')}</Link>
       </div>
 
       <div className="product-detail-wrapper">
@@ -391,7 +462,7 @@ export default function ProductDetailPage() {
         <div className="product-detail-image">
           <img src={product.image_url} alt={product.name} />
           {product.stock_quantity === 0 && (
-            <div className="stock-overlay">Out of Stock</div>
+            <div className="stock-overlay">{t('productDetail.outOfStock')}</div>
           )}
         </div>
 
@@ -411,22 +482,22 @@ export default function ProductDetailPage() {
           <div className="detail-stock">
             {product.stock_quantity > 0 ? (
               <>
-                <span className="in-stock">✓ In Stock</span>
-                <span className="stock-quantity">({product.stock_quantity} available)</span>
+                <span className="in-stock">✓ {t('productDetail.inStock')}</span>
+                <span className="stock-quantity">({product.stock_quantity} {t('productDetail.available')})</span>
               </>
             ) : (
-              <span className="out-of-stock">Out of Stock</span>
+              <span className="out-of-stock">{t('productDetail.outOfStock')}</span>
             )}
           </div>
 
           <div className="detail-description">
-            <h3>Description</h3>
+            <h3>{t('productDetail.description')}</h3>
             <p>{product.description}</p>
           </div>
 
           <div className="detail-purchase">
             <div className="quantity-selector">
-              <label>Quantity:</label>
+              <label>{t('productDetail.quantity')}:</label>
               <div className="quantity-control">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -453,7 +524,7 @@ export default function ProductDetailPage() {
 
             {sizeOptions.length > 0 && (
               <div className="quantity-selector size-selector">
-                <label>Sizes:</label>
+                <label>{t('productDetail.sizes')}:</label>
                 <div className="size-grid">
                   {sizeOptions.map(s => {
                     const stock = sizeStocks[s] === undefined ? null : sizeStocks[s];
@@ -477,17 +548,17 @@ export default function ProductDetailPage() {
                     {selectedSize ? (
                       sizeStocks[selectedSize] !== undefined ? (
                         sizeStocks[selectedSize] > 5 ? (
-                          <span className="in-stock">{sizeStocks[selectedSize]} available</span>
+                          <span className="in-stock">{sizeStocks[selectedSize]} {t('productDetail.available')}</span>
                         ) : sizeStocks[selectedSize] > 0 ? (
-                          <span className="low-stock">Low in stock</span>
+                          <span className="low-stock">{t('productDetail.lowStock')}</span>
                         ) : (
-                          <span className="out-of-stock">Out of stock</span>
+                          <span className="out-of-stock">{t('productDetail.outOfStockLabel')}</span>
                         )
                       ) : (
-                        <span className="stock-unknown">Stock unknown</span>
+                        <span className="stock-unknown">{t('productDetail.stockUnknown')}</span>
                       )
                     ) : (
-                      <span className="stock-hint">Select a size to see availability.</span>
+                      <span className="stock-hint">{t('productDetail.selectSizeHint')}</span>
                     )}
                   </div>
                   <button className="size-guide-link" onClick={() => setShowSizeGuide(true)}>{sizeGuideLabel}</button>
@@ -500,11 +571,11 @@ export default function ProductDetailPage() {
               onClick={handleAddToCart}
               disabled={product.stock_quantity === 0 || (sizeOptions.length > 0 && !selectedSize)}
             >
-              {addedToCart ? '✓ Added to Cart!' : 'Add to Cart'}
+              {addedToCart ? t('productDetail.addedToCart') : t('productDetail.addToCart')}
             </button>
 
             <button className="buy-now" disabled={product.stock_quantity === 0}>
-              Buy Now
+              {t('productDetail.buyNow')}
             </button>
           </div>
 
@@ -512,22 +583,22 @@ export default function ProductDetailPage() {
             <div className="shipping-item">
               <span className="icon">📦</span>
               <div>
-                <h4>Free Shipping</h4>
-                <p>On orders over $50</p>
+                <h4>{t('productDetail.freeShipping')}</h4>
+                <p>{t('productDetail.shippingThreshold')}</p>
               </div>
             </div>
             <div className="shipping-item">
               <span className="icon">↩️</span>
               <div>
-                <h4>Easy Returns</h4>
-                <p>30-day return policy</p>
+                <h4>{t('productDetail.easyReturns')}</h4>
+                <p>{t('productDetail.returnPolicy')}</p>
               </div>
             </div>
             <div className="shipping-item">
               <span className="icon">🛡️</span>
               <div>
-                <h4>Secure Checkout</h4>
-                <p>100% secure payment</p>
+                <h4>{t('productDetail.secureCheckout')}</h4>
+                <p>{t('productDetail.securePayment')}</p>
               </div>
             </div>
           </div>
@@ -536,12 +607,28 @@ export default function ProductDetailPage() {
 
       {/* Related Products */}
       <div className="related-products">
-        <h3>You Might Also Like</h3>
+        <h3>{t('productDetail.youMightAlsoLike')}</h3>
         <div className="related-grid">
-          {/* Placeholder for related products */}
-          <p>More products coming soon...</p>
+          {relatedLoading ? (
+            <p>{t('productDetail.loading')}</p>
+          ) : relatedProducts && relatedProducts.length > 0 ? (
+            relatedProducts.map(r => (
+              <div key={r.id} className="related-card">
+                <Link href={`/product/${r.id}`} className="related-link">
+                  <img src={r.image_url || '/default-product.jpg'} alt={r.name} />
+                  <div className="related-info">
+                    <div className="related-name">{r.name}</div>
+                    <div className="related-price">${parseFloat(r.price || 0).toFixed(2)}</div>
+                  </div>
+                </Link>
+              </div>
+            ))
+          ) : (
+            <p>{t('productDetail.moreProductsSoon')}</p>
+          )}
         </div>
       </div>
+      <BasketballFooter />
     </div>
 
     {showSizeGuide && (

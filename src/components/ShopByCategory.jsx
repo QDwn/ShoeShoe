@@ -1,12 +1,17 @@
+"use client"
+
+import { useLanguage } from '../context/LanguageContext';
+
 export default function ShopByCategory(){
+  const { t } = useLanguage();
 
   const categories = [
-    {name:"All Start NBA 2026", img:"all star nba 2026.jpg"},
-    {name:"Basketball Shoes", img:"/jordan.jpg"},
-    {name:"Ball Basketball", img:"/ball.jpg"},
-    {name:"Socks", img:"/bg socks.jpg"},
-    {name:"Jersey", img:"/jersey allstar 2026.jpg"},
-    {name:"Training Shirt", img:"/teeshirt allstar 2026.jpg"}
+    {name:t('home.categoryTitles.0'), img:"/all star nba 2026.jpg"},
+    {name:t('home.categoryTitles.1'), img:"/jordan.jpg"},
+    {name:t('home.categoryTitles.2'), img:"/ball.jpg"},
+    {name:t('home.categoryTitles.3'), img:"/bg socks.jpg"},
+    {name:t('home.categoryTitles.4'), img:"/jersey allstar 2026.jpg"},
+    {name:t('home.categoryTitles.5'), img:"/teeshirt allstar 2026.jpg"}
   ]
 
   return(
@@ -18,7 +23,7 @@ export default function ShopByCategory(){
         {categories.map((item,index)=>(
           <div className="categoryCard" key={index}>
 
-            <img src={item.img}/>
+            <img src={item.img} alt={item.name} />
 
             <h3>{item.name}</h3>
 

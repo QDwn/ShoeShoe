@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import './BasketballFooter.css';
+import { useLanguage } from '../context/LanguageContext';
 
 const socialLinks = [
   {
@@ -42,21 +43,23 @@ const socialLinks = [
   },
 ];
 
-const introLinks = [
-  { label: 'About Us', href: '/about' },
-  { label: 'Privacy Policy', href: '/privacy-policy' },
-  { label: 'Terms of Service', href: '/terms-of-service' },
-  { label: 'FAQ', href: '/faq' },
-];
-
-const newsLinks = [
-  { label: 'Events', href: '/events' },
-  { label: 'Sale', href: '/sale' },
-  { label: 'New Shoes', href: '/new-arrivals' },
-  { label: 'Basketball News', href: '/news' },
-];
-
 export default function BasketballFooter() {
+  const { t } = useLanguage();
+
+  const introLinks = [
+    { label: t('footer.introduction'), href: '/about' },
+    { label: t('footer.privacyPolicy'), href: '/privacy-policy' },
+    { label: t('footer.termsOfService'), href: '/terms-of-service' },
+    { label: t('footer.faq'), href: '/faq' },
+  ];
+
+  const newsLinks = [
+    { label: t('footer.events'), href: '/events' },
+    { label: t('footer.sale'), href: '/sale' },
+    { label: t('footer.newShoes'), href: '/new-arrivals' },
+    { label: t('footer.basketballNews'), href: '/news' },
+  ];
+
   return (
     <footer className="basketball-footer">
       <div className="footer-glow footer-glow-left" />
@@ -68,12 +71,12 @@ export default function BasketballFooter() {
             <div className="footer-brand">
               <img src="/logo.png" alt="ShoeShoe" className="footer-logo" />
               <div>
-                <p className="footer-kicker">ShoeShoe Basketball</p>
-                <h2>Gear up for every possession</h2>
+                <p className="footer-kicker">{t('footer.kicker')}</p>
+                <h2>{t('footer.title')}</h2>
               </div>
             </div>
             <p className="footer-description">
-              A basketball shop for shoes and game-day gear built for players who want to move faster, jump higher, and score with their own style.
+              {t('footer.description')}
             </p>
             <div className="footer-socials" aria-label="Social links">
               {socialLinks.map((social) => (
@@ -86,7 +89,7 @@ export default function BasketballFooter() {
 
           <div className="footer-links-grid">
             <div className="footer-column">
-              <h3>Introduction</h3>
+              <h3>{t('footer.introduction')}</h3>
               {introLinks.map((link) => (
                 <Link key={link.label} href={link.href} className="footer-link">
                   {link.label}
@@ -95,7 +98,7 @@ export default function BasketballFooter() {
             </div>
 
             <div className="footer-column">
-              <h3>News</h3>
+              <h3>{t('footer.news')}</h3>
               {newsLinks.map((link) => (
                 <Link key={link.label} href={link.href} className="footer-link">
                   {link.label}
@@ -104,28 +107,28 @@ export default function BasketballFooter() {
             </div>
 
             <div className="footer-column footer-support-column">
-              <h3>Support</h3>
+              <h3>{t('footer.support')}</h3>
               <a className="footer-link" href="tel:19006092">
-                Hotline: 1900-6092
+                {t('footer.hotline')}: 1900-6092
               </a>
               <a className="footer-link" href="mailto:support@shoeshoe.vn">
                 support@shoeshoe.vn
               </a>
               <a className="footer-link" href="/login">
-                Log In
+                {t('nav.login')}
               </a>
               <a className="footer-link" href="/register">
-                Create New Account
+                {t('footer.createAccount')}
               </a>
             </div>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <p>© 2026 ShoeShoe. Basketball gear for the court and everyday life.</p>
+          <p>{t('footer.copyright')}</p>
         </div>
         <div className="location">
-          <p>175 P. Tay Son, Kim Lien, Ha Noi, Viet Nam</p>
+          <p>{t('footer.location')}</p>
         </div>
       </div>
     </footer>

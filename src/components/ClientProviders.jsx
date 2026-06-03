@@ -2,13 +2,16 @@
 
 import React from 'react';
 import { CartProvider } from '../context/CartContext';
+import { LanguageProvider } from '../context/LanguageContext';
 import CartToast from './CartToast';
 
-export default function ClientProviders({ children }) {
+export default function ClientProviders({ children, initialLanguage }) {
   return (
-    <CartProvider>
-      {children}
-      <CartToast />
-    </CartProvider>
+    <LanguageProvider initialLanguage={initialLanguage}>
+      <CartProvider>
+        {children}
+        <CartToast />
+      </CartProvider>
+    </LanguageProvider>
   );
 }

@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import './page.css';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -12,7 +14,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setMessage('Processing...');
+    setMessage(t('auth.processing'));
     setIsSuccess(false);
 
     try {
@@ -39,15 +41,15 @@ export default function LoginPage() {
       } else {
         setMessage('❌ ' + data.message);
       }
-    } catch (error) {
-      setMessage('❌ Cannot connect to Server');
+    } catch {
+      setMessage('❌ ' + t('auth.cannotConnect'));
     }
   };
 
   return (
     <div className="loginPage">
       <div className="loginBox">
-        <h2>Sign In</h2>
+        <h2>{t('auth.signIn')}</h2>
 
         {message && (
           <div style={{ 
@@ -66,25 +68,25 @@ export default function LoginPage() {
         <form onSubmit={handleLogin}>
           <input 
             type="email" 
-            placeholder="Email" 
+            placeholder={t('auth.email')} 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <input 
             type="password" 
-            placeholder="Password" 
+            placeholder={t('auth.password')} 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button type="submit">Sign In</button>
+          <button type="submit">{t('auth.signIn')}</button>
         </form>
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
-          Don't have an account?{' '}
+          {t('auth.noAccount')} {' '}
           <Link href="/register" style={{ color: '#0066cc', textDecoration: 'none', fontWeight: 'bold' }}>
-            Sign up now
+            {t('auth.signUpNow')}
           </Link>
         </div>
       </div>

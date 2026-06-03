@@ -6,10 +6,12 @@ import LatestCollection from "../src/components/LatestCollection"
 import ShopByCategory from "../src/components/ShopByCategory"
 import PreFooterStrip from "../src/components/PreFooterStrip"
 import BasketballFooter from "../src/components/BasketballFooter"
+import { useLanguage } from "../src/context/LanguageContext"
 
 export default function HomeImage(){
 
   const images = ["/img nba all star 2026.jpg","/ja2.jpg"]
+  const { t } = useLanguage()
 
   const [index,setIndex] = useState(0)
   const [progress,setProgress] = useState(0)
@@ -31,22 +33,19 @@ export default function HomeImage(){
     if(!playing) return
 
     const timer = setInterval(()=>{
-      setProgress(prev => prev + 1)
+      setProgress(prev => {
+        if (prev >= 99) {
+          setIndex(i => (i + 1) % images.length)
+          return 0
+        }
+
+        return prev + 1
+      })
     },60)
 
     return ()=> clearInterval(timer)
 
-  },[playing])
-
-  // khi vòng tròn đầy → đổi ảnh
-  useEffect(()=>{
-
-    if(progress >= 100){
-      setIndex(i => (i + 1) % images.length)
-      setProgress(0)
-    }
-
-  },[progress])
+  },[playing, images.length])
 
   return(
 
@@ -56,7 +55,7 @@ export default function HomeImage(){
 
       <div className="khung">
 
-        <img className="imghome" src={images[index]} />
+        <img className="imghome" src={images[index]} alt="Home hero slide" />
 
         <button className="btnleft" onClick={prevImage}>{"<"}</button>
         <button className="btnright" onClick={nextImage}>{">"}</button>
@@ -99,17 +98,17 @@ export default function HomeImage(){
       </div>
       
       <div className="Featured">
-        <h1 >Featured Products</h1>
+        <h1 >{t('home.featuredProducts')}</h1>
         <FeaturedProducts />
       </div>
       
       <div className="collection">
-        <h1>The latest collection</h1>
+        <h1>{t('home.latestCollection')}</h1>
         <LatestCollection />
       </div>
 
        <div className="Shopbycategory">
-        <h1>Shop by Basketball</h1>
+        <h1>{t('home.shopByBasketball')}</h1>
         <ShopByCategory />
       </div>
 

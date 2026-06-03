@@ -2,14 +2,17 @@
 
 import Link from 'next/link';
 import './PreFooterStrip.css';
-
-const links = [
-  { label: 'Support', href: '/contact' },
-  { label: 'Join Us', href: '/register' },
-  { label: 'Log In', href: '/login' },
-];
+import { useLanguage } from '../context/LanguageContext';
 
 export default function PreFooterStrip() {
+  const { t } = useLanguage();
+
+  const links = [
+    { label: t('prefooter.support'), href: '/contact' },
+    { label: t('prefooter.joinUs'), href: '/register' },
+    { label: t('prefooter.logIn'), href: '/login' },
+  ];
+
   return (
     <section className="prefooter-strip" aria-label="Basketball brand links">
       <div className="prefooter-strip__logo-wrap">
@@ -18,7 +21,7 @@ export default function PreFooterStrip() {
 
       <nav className="prefooter-strip__links" aria-label="Quick links">
         <Link href="/stores" className="prefooter-strip__link prefooter-strip__link--button">
-          Find a Store
+          {t('prefooter.findStore')}
         </Link>
 
         {links.map((link) => (

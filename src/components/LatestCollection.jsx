@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function LatestCollection() {
     const [collection, setCollection] = useState([]);
+    const { language } = useLanguage();
 
     useEffect(() => {
         const loadLatest = async () => {
@@ -27,7 +29,7 @@ export default function LatestCollection() {
                     <div className="productCard" key={item.id}>
                         <img src={item.image_url} alt={item.name} />
                         <h3>{item.name}</h3>
-                        <p>{parseFloat(item.price).toLocaleString('vi-VN')}</p>
+                        <p>{parseFloat(item.price).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</p>
                     </div>
                 ))}
             </div>

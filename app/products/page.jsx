@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AddToCartButton from '../../src/components/AddToCartButton';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '../../src/components/Navbar';
+import BasketballFooter from '../../src/components/BasketballFooter';
 import './products.css';
 
 export default function ProductsPage() {
@@ -278,6 +279,7 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
+      <BasketballFooter/>
     </div>
   );
 }

@@ -1,10 +1,15 @@
+"use client"
+
+import { useLanguage } from '../context/LanguageContext';
+
 export default function FeaturedProducts(){
+  const { t } = useLanguage();
 
   const categories = [
-    { name: "Tee Warm Up", sales: 1200, img: "/warmup.jpg" },
-    { name: "Jerseys", sales: 900, img: "/jerseys.jpg" },
-    { name: "Socks", sales: 700, img: "/socks.jpg" },
-    { name: "Shoes", sales: 1500, img: "/sabrina2.jpg" }
+    { name: t('home.featuredCategories.0'), sales: 1200, img: "/warmup.jpg" },
+    { name: t('home.featuredCategories.1'), sales: 900, img: "/jerseys.jpg" },
+    { name: t('home.featuredCategories.2'), sales: 700, img: "/socks.jpg" },
+    { name: t('home.featuredCategories.3'), sales: 1500, img: "/sabrina2.jpg" }
   ]
 
   return(
@@ -17,13 +22,13 @@ export default function FeaturedProducts(){
           
           <div className="featuredItem" key={index}>
 
-            <img src={item.img} />
+            <img src={item.img} alt={item.name} />
 
             <div className="featuredContent">
 
               <h2>{item.name}</h2>
 
-              <button>Shop Now</button>
+              <button>{t('home.shopNow')}</button>
 
             </div>
 

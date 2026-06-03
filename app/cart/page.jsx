@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import { useCart } from '../../src/context/CartContext';
 import Navbar from '../../src/components/Navbar';
+import { useLanguage } from '../../src/context/LanguageContext';
 import './cart.css';
 
 export default function CartPage() {
   const { cart, updateItem, removeItem, clearCart, getTotal } = useCart();
+  const { t } = useLanguage();
   const [shipping, setShipping] = useState({ name: '', email: '', address: '' });
   const [status, setStatus] = useState(null);
   const [showPromo, setShowPromo] = useState(false);
@@ -31,7 +33,7 @@ export default function CartPage() {
           const found = (body.sizes || []).find(s => s.size === it.size);
           if (found) {
             if ((found.stock || 0) < (it.quantity || 0)) {
-              setStatus(`Not enough stock for ${it.name} size ${it.size}`);
+              setStatus(`${t('cart.stockIssue')} ${it.name} ${t('cart.sizeLabel')} ${it.size}`);
               return;
             }
           } else {
@@ -40,7 +42,7 @@ export default function CartPage() {
             if (!pres.ok) throw new Error('Failed to fetch product ' + it.id);
             const pdata = await pres.json();
             if ((pdata.product.stock_quantity || 0) < (it.quantity || 0)) {
-              setStatus(`Not enough stock for ${it.name}`);
+              setStatus(`${t('cart.stockIssue')} ${it.name}`);
               return;
             }
           }
@@ -50,7 +52,7 @@ export default function CartPage() {
           if (!pres.ok) throw new Error('Failed to fetch product ' + it.id);
           const pdata = await pres.json();
           if ((pdata.product.stock_quantity || 0) < (it.quantity || 0)) {
-            setStatus(`Not enough stock for ${it.name}`);
+            setStatus(`${t('cart.stockIssue')} ${it.name}`);
             return;
           }
         }
@@ -78,13 +80,13 @@ export default function CartPage() {
       <Navbar />
       <header className="cart-header">
         <div>
-          <h1 className="cart-title">YOUR BAG <span className="cart-count">({cart.reduce((s,i)=>s+(i.quantity||0),0)} items)</span></h1>
-          <p className="cart-note">Items in your bag are not reserved — check out now to make them yours.</p>
+          <h1 className="cart-title">{t('cart.title')} <span className="cart-count">({cart.reduce((s,i)=>s+(i.quantity||0),0)} {t('cart.items')})</span></h1>
+          <p className="cart-note">{t('cart.note')}</p>
         </div>
       </header>
 
       {cart.length === 0 ? (
-        <p className="empty">Your cart is empty.</p>
+        <p className="empty">{t('cart.empty')}</p>
       ) : (
         <div className="cart-grid">
           <div className="cart-left">
@@ -95,34 +97,34 @@ export default function CartPage() {
                 </div>
                 <div className="cart-row-body">
                   <h3 className="cart-item-name">{item.name}</h3>
-                  <div className="cart-item-meta">{item.color ? `Color: ${item.color}` : ''} {item.size ? `/ Size: ${item.size}` : ''}</div>
+                  <div className="cart-item-meta">{item.color ? `${t('cart.color')}: ${item.color}` : ''} {item.size ? `/ ${t('cart.size')}: ${item.size}` : ''}</div>
 
                   <div className="cart-row-actions">
                     <select className="qty-select" value={item.quantity} onChange={(e)=>handleQty(item.cartItemId, e.target.value)}>
                       {Array.from({length:10}).map((_,i)=> <option key={i+1} value={i+1}>{i+1}</option>)}
                     </select>
-                    <button className="remove-btn" onClick={()=>removeItem(item.cartItemId)} aria-label="Remove">🗑️</button>
-                    <button className="wish-btn" aria-label="Save for later">♡</button>
+                    <button className="remove-btn" onClick={()=>removeItem(item.cartItemId)} aria-label={t('cart.remove')}>🗑️</button>
+                    <button className="wish-btn" aria-label={t('cart.saveForLater')}>♡</button>
                   </div>
                 </div>
 
-                  <div className="cart-row-price">${Number(item.price || 0).toFixed(2)}</div>
+                  <div className="cart-row-price">{Number(item.price || 0).toFixed(2)}</div>
               </div>
             ))}
           </div>
 
           <aside className="cart-summary">
-            <h2>ORDER SUMMARY</h2>
-            <div className="summary-line"><span>{cart.reduce((s,i)=>s+(i.quantity||0),0)} items</span><span>${getTotal().toFixed(2)}</span></div>
-            <div className="summary-line"><span>Delivery</span><span>Free</span></div>
+            <h2>{t('cart.orderSummary')}</h2>
+            <div className="summary-line"><span>{cart.reduce((s,i)=>s+(i.quantity||0),0)} {t('cart.items')}</span><span>{getTotal().toFixed(2)}</span></div>
+            <div className="summary-line"><span>{t('cart.delivery')}</span><span>{t('cart.free')}</span></div>
 
             {appliedPromo && appliedPromo.type !== 'none' && (
-              <div className="summary-line"><span>Promo ({appliedPromo.code})</span><span>-{appliedPromo.type === 'percent' ? appliedPromo.value + '%' : ''}</span></div>
+              <div className="summary-line"><span>{t('cart.promo')} ({appliedPromo.code})</span><span>-{appliedPromo.type === 'percent' ? appliedPromo.value + '%' : ''}</span></div>
             )}
 
             <div className="summary-total">
-              <div>Total</div>
-              <div className="summary-amount">${( (function(){
+              <div>{t('cart.total')}</div>
+              <div className="summary-amount">{( (function(){
                 const base = getTotal();
                 if (!appliedPromo || appliedPromo.type === 'none') return base;
                 if (appliedPromo.type === 'percent') return (base * (1 - appliedPromo.value/100));
@@ -131,12 +133,12 @@ export default function CartPage() {
             </div>
 
             <div className="promo">
-              <button type="button" className="promo-toggle" onClick={() => setShowPromo(!showPromo)}>Use points or promo code</button>
+              <button type="button" className="promo-toggle" onClick={() => setShowPromo(!showPromo)}>{t('cart.usePromo')}</button>
               {showPromo && (
                 <div className="promo-input-wrap">
                   <input
                     className="promo-input"
-                    placeholder="Enter promo code"
+                    placeholder={t('cart.enterPromo')}
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
                   />
@@ -153,16 +155,16 @@ export default function CartPage() {
                         setAppliedPromo({ code, type: 'none', value: 0 });
                       }
                     }}
-                  >Apply</button>
+                  >{t('cart.apply')}</button>
                 </div>
               )}
             </div>
 
             <form onSubmit={handleCheckout} className="checkout-form">
-              <button type="submit" className="checkout-btn">Checkout →</button>
+              <button type="submit" className="checkout-btn">{t('cart.checkout')}</button>
             </form>
 
-            <div className="payments">Accepted payment methods
+            <div className="payments">{t('cart.acceptedPayments')}
               <div className="payments-logos">VISA • MC • MOMO</div>
             </div>
           </aside>
