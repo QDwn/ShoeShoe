@@ -64,7 +64,11 @@ export default function ProductsPage() {
       }
       const data = await response.json();
       if (data.categories && Array.isArray(data.categories)) {
-        setCategories(data.categories);
+        setCategories(
+          data.categories
+            .map((category) => (typeof category === 'string' ? category : category?.name))
+            .filter(Boolean)
+        );
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -102,8 +106,7 @@ export default function ProductsPage() {
       
       if (data.products && Array.isArray(data.products)) {
         setProducts(data.products);
-        setTotalPages(Math.ceil(data.total / itemsPerPage));
-        // no-op: keep products and pagination only
+        setTotalPages(Math.max(1, Math.ceil((Number(data.total) || 0) / itemsPerPage)));
       }
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -204,7 +207,7 @@ export default function ProductsPage() {
           ) : (
             <>
               <div className="products-info">
-                <p>Showing {products.length} products</p>
+                <p>Showing {products.length} products{totalPages > 1 ? ` • Page ${currentPage} of ${totalPages}` : ''}</p>
               </div>
 
               {/* Products Grid */}
@@ -232,7 +235,7 @@ export default function ProductsPage() {
                       <h3>
                         <Link href={`/product/${product.id}`}>{product.name}</Link>
                       </h3>
-                      <p className="product-description">{product.description.substring(0, 60)}...</p>
+                      <p className="product-description">{(product.description || '').substring(0, 60)}...</p>
                       
                       <div className="product-footer">
                         <span className="product-price">${parseFloat(product.price).toFixed(2)}</span>
