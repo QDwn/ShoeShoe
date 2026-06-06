@@ -27,7 +27,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [productSearch, setProductSearch] = useState('');
-  const [productSort, setProductSort] = useState('az');
+  const [productSort, setProductSort] = useState('new');
   const [createdFilter, setCreatedFilter] = useState('');
   const [salesFilter, setSalesFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('');
@@ -51,6 +51,53 @@ export default function AdminPanel() {
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'users') fetchUsers();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!showProductModal) return;
+
+    if (!editingProduct) {
+      setProductForm(initialProductForm);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadProductForm = async () => {
+      try {
+        const sizeData = await apiFetch(`/products/${editingProduct.id}/sizes`);
+        if (cancelled) return;
+
+        const sizes = Array.isArray(sizeData.sizes) ? sizeData.sizes : [];
+        const stockBySize = {};
+        sizes.forEach((item) => {
+          stockBySize[item.size] = String(item.stock ?? '');
+        });
+
+        setProductForm({
+          name: editingProduct.name || '',
+          description: editingProduct.description || '',
+          price: editingProduct.price || '',
+          sizes: sizes.map((item) => item.size),
+          stockBySize,
+          categories: String(editingProduct.category || '')
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean),
+          image_url: editingProduct.image_url || '',
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setError(e.message);
+        }
+      }
+    };
+
+    loadProductForm();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showProductModal, editingProduct]);
 
   const apiFetch = async (path, options) => {
     const res = await fetch(`${API_BASE}${path}`, options);
@@ -154,7 +201,11 @@ export default function AdminPanel() {
       const sizes = prev.sizes.includes(size)
         ? prev.sizes.filter((s) => s !== size)
         : [...prev.sizes, size];
-      return { ...prev, sizes };
+      const stockBySize = { ...prev.stockBySize };
+      if (!sizes.includes(size)) {
+        delete stockBySize[size];
+      }
+      return { ...prev, sizes, stockBySize };
     });
   };
 
