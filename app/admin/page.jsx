@@ -11,6 +11,8 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
+  const [homeBackground, setHomeBackground] = useState('');
+  const [homeBackgroundDraft, setHomeBackgroundDraft] = useState('');
   
   // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
@@ -33,6 +35,9 @@ export default function AdminPanel() {
   useEffect(() => {
     fetchDashboard();
     fetchCategories();
+    const savedBackground = localStorage.getItem('home_background_image') || '';
+    setHomeBackground(savedBackground);
+    setHomeBackgroundDraft(savedBackground);
   }, []);
 
   useEffect(() => {
@@ -301,11 +306,96 @@ export default function AdminPanel() {
     reader.readAsDataURL(file);
   };
 
+  const handleHomeBackgroundSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextValue = reader.result || '';
+      setHomeBackgroundDraft(nextValue);
+      setHomeBackground(nextValue);
+      localStorage.setItem('home_background_image', nextValue);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveHomeBackground = () => {
+    const nextValue = homeBackgroundDraft.trim();
+    setHomeBackground(nextValue);
+    localStorage.setItem('home_background_image', nextValue);
+  };
+
+  const handleRemoveHomeBackground = () => {
+    setHomeBackground('');
+    setHomeBackgroundDraft('');
+    localStorage.removeItem('home_background_image');
+  };
+
   // ==================== RENDER SECTIONS ====================
 
   const renderDashboard = () => (
     <div className="admin-content">
       <h2>Dashboard</h2>
+      <div className="home-hero-card">
+        <div className="home-hero-card-header">
+          <div>
+            <h3>Home Background</h3>
+            <p className="muted">Hover vào ảnh để đổi hoặc xóa hình nền trang home.</p>
+          </div>
+        </div>
+
+        <div className="home-hero-preview-shell">
+          {homeBackground ? (
+            <div className="home-hero-preview">
+              <img src={homeBackground} alt="Home background preview" />
+              <div className="home-hero-overlay">
+                <label className="home-hero-action" title="Change image">
+                  <span className="home-hero-action-icon">✎</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleHomeBackgroundSelect}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="home-hero-action danger"
+                  onClick={handleRemoveHomeBackground}
+                  title="Remove image"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="home-hero-empty">
+              <span className="home-hero-empty-icon">✎</span>
+              <span>Upload background image</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleHomeBackgroundSelect}
+              />
+            </label>
+          )}
+        </div>
+
+        <div className="home-hero-url-row">
+          <input
+            type="text"
+            value={homeBackgroundDraft}
+            onChange={(e) => setHomeBackgroundDraft(e.target.value)}
+            placeholder="Or paste image URL here"
+          />
+          <button className="btn-primary" type="button" onClick={handleSaveHomeBackground}>
+            Save
+          </button>
+          <button className="btn-secondary" type="button" onClick={handleRemoveHomeBackground}>
+            Remove
+          </button>
+        </div>
+      </div>
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{stats.products || 0}</div>
@@ -488,6 +578,7 @@ export default function AdminPanel() {
               <tr>
                 <th>ID</th>
                 <th>Customer</th>
+                <th>Payment</th>
                 <th>Status</th>
                 <th>Total</th>
                 <th>Date</th>
@@ -500,19 +591,23 @@ export default function AdminPanel() {
                   <td>{order.id}</td>
                   <td>{order.user_name || 'Guest'}</td>
                   <td>
+                    <div>{order.payment_method || 'cash'}</div>
+                    <small className="muted">{order.payment_status || 'paid'}</small>
+                  </td>
+                  <td>
                     <select 
-                      value={order.status}
+                      value={order.status || 'paid'}
                       onChange={e => handleUpdateOrderStatus(order.id, e.target.value)}
                       className="status-select"
                     >
-                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
                       <option value="processing">Processing</option>
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
                   </td>
-                  <td>${parseFloat(order.total_price || 0).toFixed(2)}</td>
+                  <td>${parseFloat(order.total || order.total_price || 0).toFixed(2)}</td>
                   <td>{new Date(order.created_at).toLocaleDateString()}</td>
                   <td>
                     <button 

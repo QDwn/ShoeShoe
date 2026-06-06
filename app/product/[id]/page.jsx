@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../../src/components/Navbar';
 import BasketballFooter from '../../../src/components/BasketballFooter';
@@ -12,6 +12,7 @@ import './product.css';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const productId = params.id;
 
   const [product, setProduct] = useState(null);
@@ -218,6 +219,23 @@ export default function ProductDetailPage() {
       setTimeout(() => setAddedToCart(false), 2000);
     } catch (err) {
       console.error('Add to cart failed', err);
+    }
+  };
+
+  const handleBuyNow = () => {
+    try {
+      const item = {
+        id: product.id,
+        name: product.name,
+        price: parseFloat(product.price) || 0,
+        image_url: product.image_url || '/default-product.jpg',
+        quantity: quantity,
+        size: selectedSize || ''
+      };
+      localStorage.setItem('buy_now_item', JSON.stringify(item));
+      router.push('/checkout');
+    } catch (err) {
+      console.error('Buy now failed', err);
     }
   };
 
@@ -574,7 +592,11 @@ export default function ProductDetailPage() {
               {addedToCart ? t('productDetail.addedToCart') : t('productDetail.addToCart')}
             </button>
 
-            <button className="buy-now" disabled={product.stock_quantity === 0}>
+            <button
+              className="buy-now"
+              onClick={handleBuyNow}
+              disabled={product.stock_quantity === 0 || (sizeOptions.length > 0 && !selectedSize)}
+            >
               {t('productDetail.buyNow')}
             </button>
           </div>
