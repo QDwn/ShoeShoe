@@ -7,7 +7,6 @@ import Navbar from '../../../src/components/Navbar';
 import BasketballFooter from '../../../src/components/BasketballFooter';
 import { useCart } from '../../../src/context/CartContext';
 import { useLanguage } from '../../../src/context/LanguageContext';
-import '../../products/products.css';
 import './product.css';
 
 export default function ProductDetailPage() {
@@ -63,10 +62,19 @@ export default function ProductDetailPage() {
         if (res.ok) {
           const body = await res.json();
           if (body.sizes && body.sizes.length > 0) {
-            setSizeOptions(body.sizes.map(s => s.size));
+            const options = body.sizes
+              .filter((s) => Number(s.stock) > 0)
+              .map((s) => String(s.size).trim())
+              .filter(Boolean);
+            setSizeOptions(options);
             const map = {};
-            body.sizes.forEach(s => { map[s.size] = s.stock; });
+            body.sizes.forEach(s => {
+              if (Number(s.stock) > 0) {
+                map[String(s.size).trim()] = Number(s.stock);
+              }
+            });
             setSizeStocks(map);
+            setSelectedSize((current) => (current && map[current] ? current : ''));
             return;
           }
         }
@@ -532,7 +540,7 @@ export default function ProductDetailPage() {
                   disabled={(selectedSize && sizeStocks[selectedSize] === 0) || product.stock_quantity === 0}
                 />
                 <button
-                  onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
+                  onClick={() => setQuantity(Math.min(selectedSize && sizeStocks[selectedSize] !== undefined ? sizeStocks[selectedSize] : product.stock_quantity, quantity + 1))}
                   disabled={product.stock_quantity === 0}
                 >
                   +
