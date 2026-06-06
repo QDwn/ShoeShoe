@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import './admin.css';
+import { defaultHomeMedia, getHomeMedia, saveHomeMedia } from '../../src/lib/homeMedia';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3001/api';
 
@@ -16,6 +17,9 @@ const initialProductForm = {
 };
 
 const sizeOptions = ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
+const heroSlotLabels = ['Hero Slide 1', 'Hero Slide 2'];
+const featuredSlotLabels = ['Tee Warm Up', 'Jerseys', 'Socks', 'Shoes'];
+const shopSlotLabels = ['All Star NBA 2026', 'Basketball Shoes', 'Ball Basketball', 'Socks', 'Jerseys', 'Tee Shirt'];
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('background');
@@ -36,11 +40,10 @@ export default function AdminPanel() {
   const [productForm, setProductForm] = useState(initialProductForm);
   const [newCategory, setNewCategory] = useState('');
   const [showBackgroundPreview, setShowBackgroundPreview] = useState(true);
-  const [homeBackground, setHomeBackground] = useState('');
+  const [homeMedia, setHomeMedia] = useState(defaultHomeMedia);
 
   useEffect(() => {
-    const saved = localStorage.getItem('home_background_image');
-    if (saved) setHomeBackground(saved);
+    setHomeMedia(getHomeMedia());
     fetchDashboard();
     fetchCategories();
   }, []);
@@ -186,6 +189,14 @@ export default function AdminPanel() {
     }, 0);
   }, [productForm.sizes, productForm.stockBySize]);
 
+  const syncHomeMediaState = (updater) => {
+    setHomeMedia((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveHomeMedia(next);
+      return next;
+    });
+  };
+
   const handleImageSelect = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -287,6 +298,75 @@ export default function AdminPanel() {
     }
   };
 
+  const openMediaPicker = (inputId) => {
+    const input = document.getElementById(inputId);
+    if (input) input.click();
+  };
+
+  const updateMediaSlot = (section, index, file) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const imageUrl = String(reader.result || '');
+      syncHomeMediaState((prev) => {
+        const nextList = [...prev[section]];
+        nextList[index] = imageUrl;
+        return { ...prev, [section]: nextList };
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearMediaSlot = (section, index) => {
+    syncHomeMediaState((prev) => {
+      const nextList = [...prev[section]];
+      nextList[index] = '';
+      return { ...prev, [section]: nextList };
+    });
+  };
+
+  const resetHomeMedia = () => {
+    syncHomeMediaState(defaultHomeMedia);
+  };
+
+  const renderMediaField = (section, index, label, className) => {
+    const imageUrl = homeMedia[section]?.[index] || '';
+    const inputId = `${section}-${index}`;
+
+    return (
+      <div className={`media-editable ${className || ''}`} key={`${section}-${index}`}>
+        <input
+          id={inputId}
+          className="media-input"
+          type="file"
+          accept="image/*"
+          onChange={(e) => updateMediaSlot(section, index, e.target.files?.[0])}
+        />
+        {imageUrl ? (
+          <img src={imageUrl} alt={label} />
+        ) : (
+          <div className="media-empty-state">{label}</div>
+        )}
+        <div className="media-overlay">
+          <div className="media-overlay-content">
+            <strong>{label}</strong>
+            <div className="inline-actions">
+              <button type="button" className="btn-primary" onClick={() => openMediaPicker(inputId)}>
+                {imageUrl ? 'Replace' : 'Add'}
+              </button>
+              {imageUrl ? (
+                <button type="button" className="btn-danger" onClick={() => clearMediaSlot(section, index)}>
+                  Delete
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderSidebar = () => (
     <aside className="admin-sidebar">
       <div className="brand-card">
@@ -354,44 +434,48 @@ export default function AdminPanel() {
           <p className="eyebrow">Home</p>
           <h2>Edit Background</h2>
         </div>
-      </div>
-      <div className="background-editor">
-        <div className="background-preview">
-          {homeBackground ? <img src={homeBackground} alt="Home background" /> : <div className="empty-preview">No background image</div>}
+        <div className="inline-actions">
+          <button type="button" className="btn-secondary" onClick={() => setShowBackgroundPreview((v) => !v)}>
+            {showBackgroundPreview ? 'Hide Preview' : 'Show Preview'}
+          </button>
+          <button type="button" className="btn-danger" onClick={resetHomeMedia}>
+            Reset Default
+          </button>
         </div>
-        <div className="background-actions">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              const reader = new FileReader();
-              reader.onload = () => {
-                const result = String(reader.result || '');
-                setHomeBackground(result);
-                localStorage.setItem('home_background_image', result);
-              };
-              reader.readAsDataURL(file);
-            }}
-          />
-          <div className="inline-actions">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => {
-                setHomeBackground('');
-                localStorage.removeItem('home_background_image');
-              }}
-            >
-              Remove
-            </button>
-            <button type="button" className="btn-primary" onClick={() => setShowBackgroundPreview((v) => !v)}>
-              {showBackgroundPreview ? 'Hide Preview' : 'Show Preview'}
-            </button>
+      </div>
+      {showBackgroundPreview ? (
+        <div className="home-media-editor">
+          <div className="home-media-section">
+            <div className="home-media-heading">
+              <span className="eyebrow">Hero</span>
+              <h3>Home Background</h3>
+            </div>
+            <div className="home-hero-preview">
+              {heroSlotLabels.map((label, index) => renderMediaField('heroImages', index, label, 'home-hero-slot'))}
+            </div>
+          </div>
+
+          <div className="home-media-section">
+            <div className="home-media-heading">
+              <span className="eyebrow">Featured</span>
+              <h3>Featured Products</h3>
+            </div>
+            <div className="home-featured-preview">
+              {featuredSlotLabels.map((label, index) => renderMediaField('featuredImages', index, label, 'home-featured-slot'))}
+            </div>
+          </div>
+
+          <div className="home-media-section">
+            <div className="home-media-heading">
+              <span className="eyebrow">Categories</span>
+              <h3>Shop by Basketball</h3>
+            </div>
+            <div className="home-shop-preview">
+              {shopSlotLabels.map((label, index) => renderMediaField('shopByBasketballImages', index, label, 'home-shop-slot'))}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 

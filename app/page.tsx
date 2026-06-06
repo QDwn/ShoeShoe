@@ -7,15 +7,30 @@ import ShopByCategory from "../src/components/ShopByCategory"
 import PreFooterStrip from "../src/components/PreFooterStrip"
 import BasketballFooter from "../src/components/BasketballFooter"
 import { useLanguage } from "../src/context/LanguageContext"
+import { getHomeMedia, HOME_MEDIA_EVENT } from "../src/lib/homeMedia"
 
 export default function HomeImage(){
-
-  const images = ["/img nba all star 2026.jpg","/ja2.jpg"]
   const { t } = useLanguage()
-
+  const [images, setImages] = useState(getHomeMedia().heroImages)
   const [index,setIndex] = useState(0)
   const [progress,setProgress] = useState(0)
   const [playing,setPlaying] = useState(true)
+
+  useEffect(() => {
+    const syncMedia = (event) => {
+      const nextImages = event?.detail?.heroImages || getHomeMedia().heroImages
+      setImages(nextImages)
+      setIndex((current) => (nextImages.length ? current % nextImages.length : 0))
+    }
+
+    window.addEventListener(HOME_MEDIA_EVENT, syncMedia)
+    window.addEventListener('storage', syncMedia)
+
+    return () => {
+      window.removeEventListener(HOME_MEDIA_EVENT, syncMedia)
+      window.removeEventListener('storage', syncMedia)
+    }
+  }, [])
 
   const prevImage = () => {
     setIndex((index - 1 + images.length) % images.length)
@@ -55,7 +70,11 @@ export default function HomeImage(){
 
       <div className="khung">
 
-        <img className="imghome" src={images[index]} alt="Home hero slide" />
+        {images[index] ? (
+          <img className="imghome" src={images[index]} alt="Home hero slide" />
+        ) : (
+          <div className="imghome hero-placeholder">No hero image</div>
+        )}
 
         <button className="btnleft" onClick={prevImage}>{"<"}</button>
         <button className="btnright" onClick={nextImage}>{">"}</button>

@@ -1,17 +1,34 @@
 "use client"
 
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { getHomeMedia, HOME_MEDIA_EVENT } from '../lib/homeMedia';
 
 export default function ShopByCategory(){
   const { t } = useLanguage();
+  const [images, setImages] = useState(getHomeMedia().shopByBasketballImages);
+
+  useEffect(() => {
+    const syncMedia = (event) => {
+      setImages(event?.detail?.shopByBasketballImages || getHomeMedia().shopByBasketballImages);
+    };
+
+    window.addEventListener(HOME_MEDIA_EVENT, syncMedia);
+    window.addEventListener('storage', syncMedia);
+
+    return () => {
+      window.removeEventListener(HOME_MEDIA_EVENT, syncMedia);
+      window.removeEventListener('storage', syncMedia);
+    };
+  }, []);
 
   const categories = [
-    {name:t('home.categoryTitles.0'), img:"/all star nba 2026.jpg"},
-    {name:t('home.categoryTitles.1'), img:"/jordan.jpg"},
-    {name:t('home.categoryTitles.2'), img:"/ball.jpg"},
-    {name:t('home.categoryTitles.3'), img:"/bg socks.jpg"},
-    {name:t('home.categoryTitles.4'), img:"/jersey allstar 2026.jpg"},
-    {name:t('home.categoryTitles.5'), img:"/teeshirt allstar 2026.jpg"}
+    {name:t('home.categoryTitles.0'), img:images[0]},
+    {name:t('home.categoryTitles.1'), img:images[1]},
+    {name:t('home.categoryTitles.2'), img:images[2]},
+    {name:t('home.categoryTitles.3'), img:images[3]},
+    {name:t('home.categoryTitles.4'), img:images[4]},
+    {name:t('home.categoryTitles.5'), img:images[5]}
   ]
 
   return(
@@ -23,7 +40,7 @@ export default function ShopByCategory(){
         {categories.map((item,index)=>(
           <div className="categoryCard" key={index}>
 
-            <img src={item.img} alt={item.name} />
+            {item.img ? <img src={item.img} alt={item.name} /> : <div className="home-image-placeholder tall">{item.name}</div>}
 
             <h3>{item.name}</h3>
 

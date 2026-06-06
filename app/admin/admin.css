@@ -254,6 +254,131 @@
   gap: 18px;
 }
 
+.home-media-editor {
+  display: grid;
+  gap: 28px;
+}
+
+.home-media-section {
+  display: grid;
+  gap: 14px;
+}
+
+.home-media-heading h3 {
+  margin: 6px 0 0;
+  font-size: 22px;
+}
+
+.home-hero-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.home-featured-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.home-shop-preview {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.home-shop-slot {
+  min-width: 320px;
+}
+
+.home-hero-slot,
+.home-featured-slot,
+.home-shop-slot {
+  position: relative;
+}
+
+.home-hero-slot {
+  min-height: 320px;
+}
+
+.home-featured-slot img,
+.home-shop-slot img,
+.home-hero-slot img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.home-hero-slot img {
+  height: 320px;
+  border-radius: 18px;
+}
+
+.home-featured-slot img {
+  height: 240px;
+  border-radius: 18px;
+}
+
+.home-shop-slot img {
+  height: 420px;
+  border-radius: 18px;
+}
+
+.media-editable {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid #d0d5dd;
+  background: #f8fafc;
+}
+
+.media-input {
+  display: none;
+}
+
+.media-empty-state {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  color: #6b7280;
+  padding: 20px;
+  text-align: center;
+}
+
+.home-hero-slot .media-empty-state {
+  min-height: 320px;
+}
+
+.home-shop-slot .media-empty-state {
+  min-height: 420px;
+}
+
+.media-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.72));
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: flex-end;
+  padding: 18px;
+}
+
+.media-editable:hover .media-overlay {
+  opacity: 1;
+}
+
+.media-overlay-content {
+  display: grid;
+  gap: 10px;
+}
+
+.media-overlay-content strong {
+  font-size: 16px;
+}
+
 .background-preview {
   border-radius: 18px;
   overflow: hidden;
@@ -404,7 +529,9 @@
   .toolbar-grid,
   .stats-grid,
   .size-stock-grid,
-  .form-grid {
+  .form-grid,
+  .home-hero-preview,
+  .home-featured-preview {
     grid-template-columns: 1fr;
   }
 }
