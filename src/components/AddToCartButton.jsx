@@ -4,6 +4,15 @@ import React from 'react';
 import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
 
+const FALLBACK_PRODUCT_IMAGE = '/logo.png';
+
+function getSafeProductImage(imageUrl) {
+  const value = String(imageUrl || '').trim();
+  if (!value || value.startsWith('data:image/')) return FALLBACK_PRODUCT_IMAGE;
+  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) return value;
+  return `/${value}`;
+}
+
 export default function AddToCartButton({ product, small }) {
   const { addItem } = useCart();
   const router = useRouter();
@@ -23,7 +32,7 @@ export default function AddToCartButton({ product, small }) {
       }
 
       const priceNum = parseFloat(product.price) || 0;
-      addItem({ id: product.id, name: product.name, price: priceNum, image_url: product.image_url || '/default-product.jpg' });
+      addItem({ id: product.id, name: product.name, price: priceNum, image_url: getSafeProductImage(product.image_url) });
     } catch (err) {
       console.error('AddToCart error', err);
       // fallback: navigate to product page

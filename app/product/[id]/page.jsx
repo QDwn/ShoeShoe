@@ -9,6 +9,15 @@ import { useCart } from '../../../src/context/CartContext';
 import { useLanguage } from '../../../src/context/LanguageContext';
 import './product.css';
 
+const FALLBACK_PRODUCT_IMAGE = '/logo.png';
+
+function getSafeProductImage(imageUrl) {
+  const value = String(imageUrl || '').trim();
+  if (!value || value.startsWith('data:image/')) return FALLBACK_PRODUCT_IMAGE;
+  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) return value;
+  return `/${value}`;
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -220,7 +229,7 @@ export default function ProductDetailPage() {
     // Add to cart using CartContext
     try {
       const priceNum = parseFloat(product.price) || 0;
-      const item = { id: product.id, name: product.name, price: priceNum, image_url: product.image_url || '/default-product.jpg' };
+      const item = { id: product.id, name: product.name, price: priceNum, image_url: getSafeProductImage(product.image_url) };
       if (selectedSize) item.size = selectedSize;
       addItem(item, quantity);
       setAddedToCart(true);
@@ -236,11 +245,18 @@ export default function ProductDetailPage() {
         id: product.id,
         name: product.name,
         price: parseFloat(product.price) || 0,
-        image_url: product.image_url || '/default-product.jpg',
+        image_url: getSafeProductImage(product.image_url),
         quantity: quantity,
         size: selectedSize || ''
       };
-      localStorage.setItem('buy_now_item', JSON.stringify(item));
+      try {
+        localStorage.removeItem('checkout_state');
+        localStorage.removeItem('checkout_cart');
+        localStorage.setItem('buy_now_item', JSON.stringify(item));
+      } catch (_error) {
+        localStorage.removeItem('buy_now_item');
+        localStorage.setItem('buy_now_item', JSON.stringify(item));
+      }
       router.push('/checkout');
     } catch (err) {
       console.error('Buy now failed', err);

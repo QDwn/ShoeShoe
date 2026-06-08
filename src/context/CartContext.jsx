@@ -3,6 +3,27 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const CartContext = createContext();
+const FALLBACK_PRODUCT_IMAGE = '/logo.png';
+
+function normalizeImageUrl(imageUrl) {
+  const value = String(imageUrl || '').trim();
+  if (!value) return FALLBACK_PRODUCT_IMAGE;
+  if (value.startsWith('data:image/')) return FALLBACK_PRODUCT_IMAGE;
+  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) return value;
+  return `/${value}`;
+}
+
+function normalizeCartItem(item) {
+  return {
+    ...item,
+    image_url: normalizeImageUrl(item?.image_url),
+  };
+}
+
+function needsImageRefresh(item) {
+  const imageUrl = normalizeImageUrl(item?.image_url);
+  return !imageUrl || imageUrl === FALLBACK_PRODUCT_IMAGE;
+}
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
@@ -11,19 +32,77 @@ export function CartProvider({ children }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('cart');
-      if (raw) setCart(JSON.parse(raw));
+      if (raw) setCart(JSON.parse(raw).map(normalizeCartItem));
     } catch (e) {
       console.error('Failed to parse cart from localStorage', e);
     }
   }, []);
 
   useEffect(() => {
+    const itemsToRefresh = cart.filter((item) => item?.id && needsImageRefresh(item));
+    if (!itemsToRefresh.length) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const responses = await Promise.all(
+          itemsToRefresh.map((item) =>
+            fetch(`/api/products/${item.id}`)
+              .then((res) => (res.ok ? res.json() : null))
+              .catch(() => null)
+          )
+        );
+
+        if (cancelled) return;
+
+        const imageByProductId = new Map();
+        responses.forEach((body) => {
+          if (body?.product?.id) {
+            imageByProductId.set(body.product.id, normalizeImageUrl(body.product.image_url));
+          }
+        });
+
+        setCart((prev) => {
+          let changed = false;
+          const next = prev.map((item) => {
+            const refreshedImage = imageByProductId.get(item.id);
+            if (refreshedImage && refreshedImage !== normalizeImageUrl(item.image_url)) {
+              changed = true;
+              return { ...item, image_url: refreshedImage };
+            }
+            return item;
+          });
+
+          return changed ? next : prev;
+        });
+      } catch (e) {
+        console.error('Failed to refresh cart images', e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cart]);
+
+  useEffect(() => {
     // ensure each item has a unique cartItemId so variants (size) are distinct
     const normalized = cart.map(i => ({
-      ...i,
+      ...normalizeCartItem(i),
       cartItemId: i.cartItemId || (i.id + '-' + (i.size || 'NOSIZE'))
     }));
-    localStorage.setItem('cart', JSON.stringify(normalized));
+    try {
+      localStorage.setItem('cart', JSON.stringify(normalized));
+    } catch (e) {
+      console.error('Failed to persist cart to localStorage', e);
+      const compactCart = normalized.map(({ image_url, ...item }) => ({ ...item, image_url: FALLBACK_PRODUCT_IMAGE }));
+      localStorage.setItem('cart', JSON.stringify(compactCart));
+      if (JSON.stringify(compactCart) !== JSON.stringify(normalized)) {
+        setCart(compactCart);
+        return;
+      }
+    }
     if (JSON.stringify(normalized) !== JSON.stringify(cart)) {
       setCart(normalized);
     }
@@ -36,11 +115,11 @@ export function CartProvider({ children }) {
       if (idx >= 0) {
         const copy = [...prev];
         copy[idx] = { ...copy[idx], quantity: (copy[idx].quantity || 0) + quantity };
-        const last = { ...copy[idx] };
+        const last = normalizeCartItem(copy[idx]);
         setLastAdded(last);
         return copy;
       }
-      const newItem = { ...item, quantity, cartItemId: key };
+      const newItem = { ...normalizeCartItem(item), quantity, cartItemId: key };
       setLastAdded(newItem);
       return [...prev, newItem];
     });

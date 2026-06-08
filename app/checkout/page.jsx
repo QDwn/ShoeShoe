@@ -6,6 +6,13 @@ import { useRouter } from 'next/navigation';
 import Navbar from '../../src/components/Navbar';
 import './checkout.css';
 
+function resolveCheckoutImage(imageUrl) {
+  const value = String(imageUrl || '').trim();
+  if (!value) return '/logo.png';
+  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) return value;
+  return `/${value}`;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [items, setItems] = useState([]);
@@ -30,10 +37,10 @@ export default function CheckoutPage() {
       const storedUser = localStorage.getItem('user');
       setIsLoggedIn(!!storedUser);
 
+      const buyNowRaw = localStorage.getItem('buy_now_item');
       const checkoutRaw = localStorage.getItem('checkout_state');
       const cartRaw = localStorage.getItem('checkout_cart');
-      const buyNowRaw = localStorage.getItem('buy_now_item');
-      const raw = checkoutRaw || cartRaw || buyNowRaw;
+      const raw = buyNowRaw || checkoutRaw || cartRaw;
       if (!raw) {
         router.replace('/cart');
         return;
@@ -50,7 +57,7 @@ export default function CheckoutPage() {
       if (typeof parsed.subtotal === 'number') {
         setSubtotal(parsed.subtotal);
       }
-      if (typeof parsed.total === 'number') {
+      if (typeof parsed.total === 'number' && typeof parsed.subtotal === 'number') {
         setSubtotal(parsed.subtotal);
       }
     } catch {
@@ -215,7 +222,7 @@ export default function CheckoutPage() {
               <div className="checkout-item-list">
                 {items.map((it) => (
                   <div className="mini-item" key={it.cartItemId || `${it.id}-${it.size || 'nosize'}`}>
-                    <img src={it.image_url} alt={it.name} />
+                    <img src={resolveCheckoutImage(it.image_url)} alt={it.name} />
                     <div className="mini-item-body">
                       <div className="mini-item-name">{it.name}</div>
                       <div className="mini-item-variant">Piece / {it.size || 'One size'} / M</div>

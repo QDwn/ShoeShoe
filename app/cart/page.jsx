@@ -7,6 +7,13 @@ import Navbar from '../../src/components/Navbar';
 import { useLanguage } from '../../src/context/LanguageContext';
 import './cart.css';
 
+function resolveCartImage(imageUrl) {
+  const value = String(imageUrl || '').trim();
+  if (!value) return '/logo.png';
+  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) return value;
+  return `/${value}`;
+}
+
 export default function CartPage() {
   const router = useRouter();
   const { cart, updateItem, removeItem, clearCart, getTotal } = useCart();
@@ -63,6 +70,7 @@ export default function CartPage() {
     if (cart.length === 0) return;
     const subtotal = getTotal();
     const total = appliedPromo ? subtotal * (1 - appliedPromo.discount / 100) : subtotal;
+    localStorage.removeItem('buy_now_item');
     localStorage.setItem('checkout_state', JSON.stringify({
       items: cart,
       promo: appliedPromo,
@@ -101,7 +109,7 @@ export default function CartPage() {
             {cart.map(item => (
               <div key={item.cartItemId || item.id} className="cart-row">
                 <div className="cart-row-media">
-                  <img src={item.image_url || '/default-product.jpg'} alt={item.name} />
+                  <img src={resolveCartImage(item.image_url)} alt={item.name} />
                 </div>
                 <div className="cart-row-body">
                   <h3 className="cart-item-name">{item.name}</h3>
