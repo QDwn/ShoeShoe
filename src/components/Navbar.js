@@ -5,12 +5,14 @@ import { useRef, useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showInlineSearch, setShowInlineSearch] = useState(false);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchPreview, setSearchPreview] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchMessage, setSearchMessage] = useState('');
@@ -18,10 +20,41 @@ export default function Navbar() {
   const { getCount } = useCart();
   const { language, setLanguage, t } = useLanguage();
   const pathname = usePathname();
+  const router = useRouter();
   const fileInputRef = useRef(null);
+  const searchWrapRef = useRef(null);
+  const getCurrentUserId = () => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      return storedUser ? JSON.parse(storedUser)?.id : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const logSearchKeyword = async ({ keyword, source = 'navbar', searchType = 'text', metadata = {} }) => {
+    const userId = getCurrentUserId();
+    if (!userId || !keyword?.trim()) return;
+
+    try {
+      await fetch('/api/auth/search-keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          keyword: keyword.trim(),
+          source,
+          searchType,
+          metadata,
+        }),
+      });
+      window.dispatchEvent(new Event('recommendations-updated'));
+    } catch {
+      // ignore logging failures
+    }
+  };
 
   useEffect(() => {
-    // Kiểm tra user từ localStorage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -36,8 +69,20 @@ export default function Navbar() {
     };
   }, [searchPreview]);
 
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(event.target)) {
+        setShowInlineSearch(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
+    window.dispatchEvent(new Event('user-changed'));
     setUser(null);
     window.location.href = '/';
   };
@@ -57,29 +102,32 @@ export default function Navbar() {
     }
   };
 
-  const toggleSearchPanel = () => {
+  const toggleInlineSearch = () => {
+    setShowInlineSearch((prev) => !prev);
     if (showSearchPanel) {
       closeSearchPanel();
-      return;
     }
+  };
 
-    setShowSearchPanel(true);
+  const handleTextSearch = (event) => {
+    event.preventDefault();
+    const term = searchQuery.trim();
+    if (!term) return;
+    logSearchKeyword({ keyword: term, source: 'navbar', searchType: 'text' });
+    router.push(`/products?search=${encodeURIComponent(term)}`);
+    setShowInlineSearch(false);
   };
 
   const resolveImageUrl = (imageUrl) => {
-    if (!imageUrl) {
-      return '';
-    }
-
+    if (!imageUrl) return '';
     return imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
   };
 
   const handleSearchImage = async (event) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
+    setShowInlineSearch(true);
     setShowSearchPanel(true);
     setSearchMessage(t('nav.sendingImage'));
     setIsSearching(true);
@@ -92,13 +140,15 @@ export default function Navbar() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(process.env.NEXT_PUBLIC_IMAGE_SEARCH_API_URL || 'http://localhost:8000/api/search-image', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch(
+        process.env.NEXT_PUBLIC_IMAGE_SEARCH_API_URL || 'http://localhost:8000/api/search-image',
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
 
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data?.detail || data?.message || t('nav.noMatches'));
       }
@@ -106,6 +156,13 @@ export default function Navbar() {
       const results = Array.isArray(data.similar_products) ? data.similar_products : [];
       setSearchResults(results);
       setSearchMessage(results.length > 0 ? t('nav.imageResults') : t('nav.noMatches'));
+      logSearchKeyword({
+        keyword: file.name || 'image search',
+        source: 'navbar',
+        searchType: 'image',
+        metadata: { file_name: file.name, mime_type: file.type, size: file.size },
+      });
+      window.dispatchEvent(new Event('recommendations-updated'));
     } catch (error) {
       setSearchResults([]);
       setSearchMessage(error.message || t('nav.noMatches'));
@@ -143,18 +200,44 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-right">
-        <button
-          className="navbar-icon-button"
-          type="button"
-          aria-label={t('nav.searchByImage')}
-          aria-expanded={showSearchPanel}
-          aria-controls="navbar-image-search-panel"
-          onClick={toggleSearchPanel}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M10.5 4a6.5 6.5 0 1 0 4.1 11.5l4.4 4.4 1.4-1.4-4.4-4.4A6.5 6.5 0 0 0 10.5 4Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z" />
-          </svg>
-        </button>
+        <div ref={searchWrapRef} className={`navbar-search-shell ${showInlineSearch ? 'is-open' : ''}`}>
+          <button
+            className="navbar-icon-button navbar-search-trigger"
+            type="button"
+            aria-label={t('nav.searchByImage')}
+            aria-expanded={showInlineSearch}
+            aria-controls="navbar-search-inline"
+            onClick={toggleInlineSearch}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10.5 4a6.5 6.5 0 1 0 4.1 11.5l4.4 4.4 1.4-1.4-4.4-4.4A6.5 6.5 0 0 0 10.5 4Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z" />
+            </svg>
+          </button>
+
+          <form id="navbar-search-inline" className="navbar-inline-search" onSubmit={handleTextSearch}>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('nav.searchProducts') || 'Search products...'}
+              aria-label={t('nav.searchProducts') || 'Search products'}
+            />
+            <button type="submit" className="navbar-inline-search-submit">
+              {t('nav.search') || 'Search'}
+            </button>
+            <button
+              type="button"
+              className="navbar-inline-image-button"
+              onClick={() => {
+                setShowInlineSearch(true);
+                setShowSearchPanel(true);
+              }}
+              aria-label={t('nav.searchByImage')}
+            >
+              {t('nav.searchByImage') || 'Image'}
+            </button>
+          </form>
+        </div>
 
         <input
           ref={fileInputRef}
@@ -208,7 +291,9 @@ export default function Navbar() {
                   <div className="navbar-search-result-meta">
                     <strong>{item.name}</strong>
                     <span>{Number(item.price).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')} đ</span>
-                    <span>{item.similarity_score}% {t('nav.similar')}</span>
+                    <span>
+                      {item.similarity_score}% {t('nav.similar')}
+                    </span>
                   </div>
                 </Link>
               ))}

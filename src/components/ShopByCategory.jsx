@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { getHomeMedia, HOME_MEDIA_EVENT } from '../lib/homeMedia';
+import { defaultHomeMedia, getHomeMedia, HOME_MEDIA_EVENT, fetchHomeMediaConfig } from '../lib/homeMedia';
 
 export default function ShopByCategory(){
   const { t } = useLanguage();
-  const [images, setImages] = useState(getHomeMedia().shopByBasketballImages);
+  const [images, setImages] = useState(defaultHomeMedia.shopByBasketballImages);
 
   useEffect(() => {
+    setImages(getHomeMedia().shopByBasketballImages);
+
+    fetchHomeMediaConfig()
+      .then((media) => setImages(media.shopByBasketballImages))
+      .catch(() => {});
+
     const syncMedia = (event) => {
       setImages(event?.detail?.shopByBasketballImages || getHomeMedia().shopByBasketballImages);
     };

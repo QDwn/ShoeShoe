@@ -41,6 +41,7 @@ export default function RegisterPage() {
         
         // Lưu user vào localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
+        window.dispatchEvent(new Event('user-changed'));
         
         setRegisterEmail('');
         setRegisterPassword('');

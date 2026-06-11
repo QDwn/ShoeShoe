@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { getHomeMedia, HOME_MEDIA_EVENT } from '../lib/homeMedia';
+import { defaultHomeMedia, getHomeMedia, HOME_MEDIA_EVENT, fetchHomeMediaConfig } from '../lib/homeMedia';
 
 export default function FeaturedProducts(){
   const { t } = useLanguage();
-  const [images, setImages] = useState(getHomeMedia().featuredImages);
+  const [images, setImages] = useState(defaultHomeMedia.featuredImages);
 
   useEffect(() => {
+    setImages(getHomeMedia().featuredImages);
+
+    fetchHomeMediaConfig()
+      .then((media) => setImages(media.featuredImages))
+      .catch(() => {});
+
     const syncMedia = (event) => {
       setImages(event?.detail?.featuredImages || getHomeMedia().featuredImages);
     };

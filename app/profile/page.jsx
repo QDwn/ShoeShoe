@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -69,6 +70,8 @@ export default function ProfilePage() {
   const persistUser = (updatedUser) => {
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+    window.dispatchEvent(new Event('user-changed'));
+    window.dispatchEvent(new Event('recommendations-updated'));
   };
 
   const showResult = (ok, text) => {
@@ -324,48 +327,6 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          <section className="profile-section profile-password-section">
-            <div>
-              <h2>Password</h2>
-              <p className="helper-text">Log in with your password instead of using temporary login codes</p>
-            </div>
-            <button type="button" className="btn btn-secondary" onClick={() => document.getElementById('password-section')?.scrollIntoView({ behavior: 'smooth' })}>
-              Change Password
-            </button>
-          </section>
-
-          <section className="profile-section" id="password-section">
-            <div className="grid-3">
-              <div className="field">
-                <label>Current Password</label>
-                <input
-                  type="password"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder="Current password"
-                />
-              </div>
-              <div className="field">
-                <label>New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="New password"
-                />
-              </div>
-              <div className="field">
-                <label>Confirm Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
-                />
-              </div>
-            </div>
-          </section>
-
           <div className="profile-footer">
             <button
               type="button"
@@ -389,6 +350,79 @@ export default function ProfilePage() {
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
+        </form>
+
+        <form className="profile-panel profile-password-panel" onSubmit={handleChangePassword}>
+          <section className="profile-section" id="password-section">
+            <div className="password-toggle-row">
+              <div>
+                <h2>Password</h2>
+                <p className="helper-text">Log in with your password instead of using temporary login codes</p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowPasswordFields((prev) => !prev)}
+              >
+                {showPasswordFields ? 'Hide Password' : 'Change Password'}
+              </button>
+            </div>
+
+            {showPasswordFields && (
+              <>
+                <div className="grid-3 password-fields">
+                  <div className="field">
+                    <label>Current Password</label>
+                    <input
+                      type="password"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      placeholder="Current password"
+                      required={showPasswordFields}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password"
+                      required={showPasswordFields}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Confirm Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm password"
+                      required={showPasswordFields}
+                    />
+                  </div>
+                </div>
+
+                <div className="profile-footer profile-footer-password">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setOldPassword('');
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      setShowPasswordFields(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Password'}
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
         </form>
       </div>
     </div>

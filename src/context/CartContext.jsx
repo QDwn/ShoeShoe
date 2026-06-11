@@ -5,6 +5,19 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 const CartContext = createContext();
 const FALLBACK_PRODUCT_IMAGE = '/logo.png';
 
+function getStoredUserId() {
+  try {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser)?.id || null : null;
+  } catch {
+    return null;
+  }
+}
+
+function getCartStorageKey(userId) {
+  return userId ? `cart_user_${userId}` : 'cart_guest';
+}
+
 function normalizeImageUrl(imageUrl) {
   const value = String(imageUrl || '').trim();
   if (!value) return FALLBACK_PRODUCT_IMAGE;
@@ -28,15 +41,28 @@ function needsImageRefresh(item) {
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [lastAdded, setLastAdded] = useState(null);
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const syncUser = () => setUserId(getStoredUserId());
+    syncUser();
+    window.addEventListener('storage', syncUser);
+    window.addEventListener('user-changed', syncUser);
+    return () => {
+      window.removeEventListener('storage', syncUser);
+      window.removeEventListener('user-changed', syncUser);
+    };
+  }, []);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('cart');
+      const raw = localStorage.getItem(getCartStorageKey(userId));
       if (raw) setCart(JSON.parse(raw).map(normalizeCartItem));
+      else setCart([]);
     } catch (e) {
       console.error('Failed to parse cart from localStorage', e);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const itemsToRefresh = cart.filter((item) => item?.id && needsImageRefresh(item));
@@ -93,11 +119,11 @@ export function CartProvider({ children }) {
       cartItemId: i.cartItemId || (i.id + '-' + (i.size || 'NOSIZE'))
     }));
     try {
-      localStorage.setItem('cart', JSON.stringify(normalized));
+      localStorage.setItem(getCartStorageKey(userId), JSON.stringify(normalized));
     } catch (e) {
       console.error('Failed to persist cart to localStorage', e);
       const compactCart = normalized.map(({ image_url, ...item }) => ({ ...item, image_url: FALLBACK_PRODUCT_IMAGE }));
-      localStorage.setItem('cart', JSON.stringify(compactCart));
+      localStorage.setItem(getCartStorageKey(userId), JSON.stringify(compactCart));
       if (JSON.stringify(compactCart) !== JSON.stringify(normalized)) {
         setCart(compactCart);
         return;
@@ -106,7 +132,7 @@ export function CartProvider({ children }) {
     if (JSON.stringify(normalized) !== JSON.stringify(cart)) {
       setCart(normalized);
     }
-  }, [cart]);
+  }, [cart, userId]);
 
   function addItem(item, quantity = 1) {
     setCart(prev => {
@@ -117,10 +143,13 @@ export function CartProvider({ children }) {
         copy[idx] = { ...copy[idx], quantity: (copy[idx].quantity || 0) + quantity };
         const last = normalizeCartItem(copy[idx]);
         setLastAdded(last);
+        window.dispatchEvent(new Event('cart-changed'));
         return copy;
       }
       const newItem = { ...normalizeCartItem(item), quantity, cartItemId: key };
       setLastAdded(newItem);
+      window.dispatchEvent(new Event('cart-changed'));
+      window.dispatchEvent(new Event('recommendations-updated'));
       return [...prev, newItem];
     });
   }
@@ -138,6 +167,8 @@ export function CartProvider({ children }) {
 
   function clearCart() {
     setCart([]);
+    window.dispatchEvent(new Event('cart-changed'));
+    window.dispatchEvent(new Event('recommendations-updated'));
   }
 
   function getCount() {

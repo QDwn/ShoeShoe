@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import './admin.css';
-import { defaultHomeMedia, getHomeMedia, saveHomeMedia } from '../../src/lib/homeMedia';
+import {
+  defaultHomeMedia,
+  getHomeMedia,
+  saveHomeMedia,
+  fetchHomeMediaConfig,
+  persistHomeMediaConfig,
+  uploadHomeMediaFile,
+} from '../../src/lib/homeMedia';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3001/api';
 
@@ -78,6 +85,7 @@ export default function AdminPanel() {
   const [newCategory, setNewCategory] = useState('');
   const [showBackgroundPreview, setShowBackgroundPreview] = useState(true);
   const [homeMedia, setHomeMedia] = useState(defaultHomeMedia);
+  const [homeMediaSaving, setHomeMediaSaving] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [orderDetail, setOrderDetail] = useState(null);
   const [orderDetailLoading, setOrderDetailLoading] = useState(false);
@@ -85,6 +93,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     setHomeMedia(getHomeMedia());
+    fetchStoredHomeMedia();
     fetchDashboard();
     fetchCategories();
     fetchRoles();
@@ -358,6 +367,15 @@ export default function AdminPanel() {
     }
   };
 
+  const fetchStoredHomeMedia = async () => {
+    try {
+      const media = await fetchHomeMediaConfig();
+      setHomeMedia(media);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const filteredUsers = useMemo(() => {
     const term = userSearch.trim().toLowerCase();
     return [...users]
@@ -457,12 +475,20 @@ export default function AdminPanel() {
 
   const availableSizeOptions = PRODUCT_TYPE_OPTIONS[productForm.productType]?.sizes || PRODUCT_TYPE_OPTIONS.shoe.sizes;
 
-  const syncHomeMediaState = (updater) => {
-    setHomeMedia((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      saveHomeMedia(next);
-      return next;
-    });
+  const syncHomeMediaState = async (updater) => {
+    const next = typeof updater === 'function' ? updater(homeMedia) : updater;
+    saveHomeMedia(next);
+    setHomeMedia(next);
+    setHomeMediaSaving(true);
+    try {
+      const persisted = await persistHomeMediaConfig(next);
+      setHomeMedia(persisted);
+    } catch (e) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setHomeMediaSaving(false);
+    }
   };
 
   const handleImageSelect = (event) => {
@@ -589,31 +615,36 @@ export default function AdminPanel() {
     if (input) input.click();
   };
 
-  const updateMediaSlot = (section, index, file) => {
+  const updateMediaSlot = async (section, index, file) => {
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const imageUrl = String(reader.result || '');
-      syncHomeMediaState((prev) => {
+    try {
+      const imageUrl = await uploadHomeMediaFile(file, `${section}-${index + 1}`);
+      await syncHomeMediaState((prev) => {
         const nextList = [...prev[section]];
         nextList[index] = imageUrl;
         return { ...prev, [section]: nextList };
       });
-    };
-    reader.readAsDataURL(file);
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
-  const clearMediaSlot = (section, index) => {
-    syncHomeMediaState((prev) => {
-      const nextList = [...prev[section]];
-      nextList[index] = '';
-      return { ...prev, [section]: nextList };
-    });
+  const clearMediaSlot = async (section, index) => {
+    try {
+      await syncHomeMediaState((prev) => {
+        const fallbackList = defaultHomeMedia[section] || [];
+        const nextList = [...prev[section]];
+        nextList[index] = fallbackList[index] || '';
+        return { ...prev, [section]: nextList };
+      });
+    } catch (_error) {}
   };
 
-  const resetHomeMedia = () => {
-    syncHomeMediaState(defaultHomeMedia);
+  const resetHomeMedia = async () => {
+    try {
+      await syncHomeMediaState(defaultHomeMedia);
+    } catch (_error) {}
   };
 
   const renderMediaField = (section, index, label, className) => {
@@ -853,11 +884,12 @@ export default function AdminPanel() {
           <button type="button" className="btn-secondary" onClick={() => setShowBackgroundPreview((v) => !v)}>
             {showBackgroundPreview ? 'Hide Preview' : 'Show Preview'}
           </button>
-          <button type="button" className="btn-danger" onClick={resetHomeMedia}>
+          <button type="button" className="btn-danger" onClick={resetHomeMedia} disabled={homeMediaSaving}>
             Reset Default
           </button>
         </div>
       </div>
+      {homeMediaSaving ? <p className="admin-inline-note">Saving background changes...</p> : null}
       {showBackgroundPreview ? (
         <div className="home-media-editor">
           <div className="home-media-section">
@@ -1271,47 +1303,55 @@ export default function AdminPanel() {
           const initial = String(user.name || user.email || 'U').trim().charAt(0).toUpperCase();
           const joined = user.created_at ? new Date(user.created_at).toLocaleDateString() : '-';
           const menuOpen = showUserMenuId === user.id;
+          const avatarSrc = user.avatar || '';
+          const hasAvatar = Boolean(avatarSrc);
 
           return (
             <article className="user-card" key={user.id}>
               <div className="user-card-top">
-                <div className="user-avatar">{initial}</div>
-                  <div className="user-menu-wrap" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      className="icon-button user-card-menu"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowUserMenuId(menuOpen ? null : user.id);
-                      }}
-                    >
-                      ...
-                    </button>
-                    {menuOpen && (
-                      <div
-                        className="user-menu-popover"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={() => openUserEdit(user)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="danger"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className="user-avatar">
+                  {hasAvatar ? (
+                    <img src={avatarSrc} alt={user.name || 'User avatar'} />
+                  ) : (
+                    <span>{initial}</span>
+                  )}
                 </div>
+                <div className="user-menu-wrap" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className="icon-button user-card-menu"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowUserMenuId(menuOpen ? null : user.id);
+                    }}
+                  >
+                    ...
+                  </button>
+                  {menuOpen && (
+                    <div
+                      className="user-menu-popover"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={() => openUserEdit(user)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={() => handleDeleteUser(user.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="user-card-body">
                 <strong>{user.name || 'Guest'}</strong>
                 <p>{String(user.roles || 'user')}</p>

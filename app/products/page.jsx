@@ -25,10 +25,38 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const logSearchKeyword = async (keyword) => {
+    const term = String(keyword || '').trim();
+    if (!term) return;
+
+    try {
+      const storedUser = localStorage.getItem('user');
+      const userId = storedUser ? JSON.parse(storedUser)?.id : null;
+      if (!userId) return;
+
+      await fetch('/api/auth/search-keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          keyword: term,
+          source: 'products_page',
+          searchType: 'text',
+          metadata: { page: currentPage, category: selectedCategory || '' },
+        }),
+      });
+      window.dispatchEvent(new Event('recommendations-updated'));
+    } catch {
+      // ignore history logging errors
+    }
+  };
+
 
   useEffect(() => {
     const category = searchParams?.get('category') || '';
+    const search = searchParams?.get('search') || '';
     setSelectedCategory(category);
+    setSearchTerm(search);
     setCurrentPage(1);
   }, [searchParams]);
 
@@ -39,7 +67,7 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchCategories();
     fetchProducts();
-  }, [selectedCategory, currentPage]);
+  }, [selectedCategory, searchTerm, currentPage]);
 
   // helper to update query params in URL
   const updateQuery = (key, value) => {
@@ -120,6 +148,8 @@ export default function ProductsPage() {
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
+    updateQuery('search', searchTerm.trim());
+    logSearchKeyword(searchTerm);
     fetchProducts();
   };
 

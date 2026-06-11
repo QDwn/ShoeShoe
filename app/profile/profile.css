@@ -210,12 +210,33 @@
   gap: 20px;
 }
 
+.password-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.password-fields {
+  margin-top: 18px;
+}
+
 .profile-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 28px 28px;
   background: linear-gradient(180deg, rgba(247, 249, 252, 0.4), rgba(247, 249, 252, 1));
+}
+
+.profile-footer-password {
+  padding-top: 0;
+  background: transparent;
+}
+
+.profile-password-panel {
+  margin-top: 18px;
 }
 
 .btn {

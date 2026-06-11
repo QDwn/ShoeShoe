@@ -1,22 +1,32 @@
 "use client"
 import { useState, useEffect } from "react"
 import Navbar from "../src/components/Navbar"
+import TrendRecommendationRow from "../src/components/TrendRecommendationRow"
 import FeaturedProducts from "../src/components/FeaturedProducts"
 import LatestCollection from "../src/components/LatestCollection"
 import ShopByCategory from "../src/components/ShopByCategory"
 import PreFooterStrip from "../src/components/PreFooterStrip"
 import BasketballFooter from "../src/components/BasketballFooter"
 import { useLanguage } from "../src/context/LanguageContext"
-import { getHomeMedia, HOME_MEDIA_EVENT } from "../src/lib/homeMedia"
+import { defaultHomeMedia, getHomeMedia, HOME_MEDIA_EVENT, fetchHomeMediaConfig } from "../src/lib/homeMedia"
 
 export default function HomeImage(){
   const { t } = useLanguage()
-  const [images, setImages] = useState(getHomeMedia().heroImages)
+  const [images, setImages] = useState(defaultHomeMedia.heroImages)
   const [index,setIndex] = useState(0)
   const [progress,setProgress] = useState(0)
   const [playing,setPlaying] = useState(true)
 
   useEffect(() => {
+    setImages(getHomeMedia().heroImages)
+
+    fetchHomeMediaConfig()
+      .then((media) => {
+        setImages(media.heroImages)
+        setIndex((current) => (media.heroImages.length ? current % media.heroImages.length : 0))
+      })
+      .catch(() => {})
+
     const syncMedia = (event) => {
       const nextImages = event?.detail?.heroImages || getHomeMedia().heroImages
       setImages(nextImages)
@@ -117,6 +127,7 @@ export default function HomeImage(){
       </div>
       
       <div className="Featured">
+        <TrendRecommendationRow />
         <h1 >{t('home.featuredProducts')}</h1>
         <FeaturedProducts />
       </div>

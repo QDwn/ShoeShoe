@@ -1,5 +1,6 @@
 export const HOME_MEDIA_STORAGE_KEY = 'home_media_config';
 export const HOME_MEDIA_EVENT = 'home-media-updated';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3001/api';
 
 export const defaultHomeMedia = {
   heroImages: ['/img nba all star 2026.jpg', '/ja2.jpg'],
@@ -35,20 +36,76 @@ export function getHomeMedia() {
 }
 
 export function saveHomeMedia(media) {
-  if (typeof window === 'undefined') return;
-
   const normalized = {
     heroImages: normalizeList(media?.heroImages, defaultHomeMedia.heroImages),
     featuredImages: normalizeList(media?.featuredImages, defaultHomeMedia.featuredImages),
     shopByBasketballImages: normalizeList(media?.shopByBasketballImages, defaultHomeMedia.shopByBasketballImages),
   };
 
-  window.localStorage.setItem(HOME_MEDIA_STORAGE_KEY, JSON.stringify(normalized));
-  window.dispatchEvent(new CustomEvent(HOME_MEDIA_EVENT, { detail: normalized }));
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(HOME_MEDIA_STORAGE_KEY, JSON.stringify(normalized));
+    } catch (_error) {
+      // Ignore localStorage quota issues; server persistence is the source of truth.
+    }
+
+    window.dispatchEvent(new CustomEvent(HOME_MEDIA_EVENT, { detail: normalized }));
+  }
+
+  return normalized;
+}
+
+export async function fetchHomeMediaConfig() {
+  const response = await fetch(`${API_BASE}/admin/home-media`, { cache: 'no-store' });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || 'Failed to load home media');
+  }
+
+  return saveHomeMedia(data.media || defaultHomeMedia);
+}
+
+export async function persistHomeMediaConfig(media) {
+  const normalized = saveHomeMedia(media);
+  const response = await fetch(`${API_BASE}/admin/home-media`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(normalized),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || 'Failed to save home media');
+  }
+
+  return saveHomeMedia(data.media || normalized);
+}
+
+export async function uploadHomeMediaFile(file, label) {
+  const imageData = await readFileAsDataUrl(file);
+  const response = await fetch(`${API_BASE}/admin/home-media/upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageData, label }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || 'Failed to upload image');
+  }
+
+  return String(data.imageUrl || '');
 }
 
 function normalizeList(value, fallback) {
   if (!Array.isArray(value)) return [...fallback];
   const cleaned = value.map((item) => String(item || '').trim());
   return cleaned.length === fallback.length ? cleaned : [...fallback];
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
 }
