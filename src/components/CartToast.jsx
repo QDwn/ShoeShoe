@@ -1,27 +1,24 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useCart } from '../context/CartContext';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useCart } from '../context/CartContext';
+import { useLanguage } from '../context/LanguageContext';
 import './CartToast.css';
 
 export default function CartToast() {
   const { lastAdded, setLastAdded } = useCart();
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef();
   const removeTimer = useRef();
 
   useEffect(() => {
-    // when a new item appears, show the toast
     if (lastAdded) {
-      // clear any existing timers
       clearTimeout(hideTimer.current);
       clearTimeout(removeTimer.current);
       setVisible(true);
-
-      // auto-hide after 3s
       hideTimer.current = setTimeout(() => setVisible(false), 3000);
-      // after transition (360ms) remove the item from context
       removeTimer.current = setTimeout(() => setLastAdded(null), 3400);
     }
 
@@ -31,37 +28,35 @@ export default function CartToast() {
     };
   }, [lastAdded, setLastAdded]);
 
-  // if nothing to show, render nothing
   if (!lastAdded && !visible) return null;
 
   const handleClose = () => {
     setVisible(false);
     clearTimeout(removeTimer.current);
-    // wait for animation to finish then clear
     removeTimer.current = setTimeout(() => setLastAdded(null), 360);
   };
 
   return (
     <div className={`cart-toast ${visible ? 'enter' : 'leave'}`} role="status" aria-live="polite">
-      <button className="cart-toast-close" onClick={handleClose} aria-label="Close">✕</button>
+      <button className="cart-toast-close" onClick={handleClose} aria-label={t('nav.close')}>×</button>
 
       <div className="cart-toast-top">
         <span className="cart-toast-check">✓</span>
-        <strong>Added to Bag</strong>
+        <strong>{t('cart.addedToBag')}</strong>
       </div>
 
       <div className="cart-toast-body">
         <img src={lastAdded?.image_url || '/default-product.jpg'} alt={lastAdded?.name || ''} />
         <div className="cart-toast-info">
           <div className="cart-toast-name">{lastAdded?.name}</div>
-          <div className="cart-toast-meta">{lastAdded?.categories ? lastAdded.categories.join(', ') : 'Basketball Shoes'}</div>
+          <div className="cart-toast-meta">{lastAdded?.categories ? lastAdded.categories.join(', ') : t('cart.fallbackCategory')}</div>
           <div className="cart-toast-price">${Number(lastAdded?.price || 0).toFixed(2)}</div>
         </div>
       </div>
 
       <div className="cart-toast-actions">
-        <Link href="/cart" className="cart-toast-btn outline">View Bag</Link>
-        <Link href="/cart" className="cart-toast-btn primary">Checkout</Link>
+        <Link href="/cart" className="cart-toast-btn outline">{t('cart.viewBag')}</Link>
+        <Link href="/cart" className="cart-toast-btn primary">{t('cart.checkout')}</Link>
       </div>
     </div>
   );

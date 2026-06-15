@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import AddToCartButton from '../../src/components/AddToCartButton';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '../../src/components/Navbar';
 import BasketballFooter from '../../src/components/BasketballFooter';
+import AddToCartButton from '../../src/components/AddToCartButton';
+import { useLanguage } from '../../src/context/LanguageContext';
 import './products.css';
 
 export default function ProductsPage() {
+  const { t } = useLanguage();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -21,7 +23,6 @@ export default function ProductsPage() {
 
   const itemsPerPage = 16;
   const maxVisibleCategories = 5;
-
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -47,10 +48,9 @@ export default function ProductsPage() {
       });
       window.dispatchEvent(new Event('recommendations-updated'));
     } catch {
-      // ignore history logging errors
+      // ignore search history logging failures
     }
   };
-
 
   useEffect(() => {
     const category = searchParams?.get('category') || '';
@@ -60,25 +60,19 @@ export default function ProductsPage() {
     setCurrentPage(1);
   }, [searchParams]);
 
-  // UI labels (editable)
-  const SHOW_MORE_TEXT = 'Show more';
-  const HIDE_TEXT = 'Hide';
-
   useEffect(() => {
     fetchCategories();
     fetchProducts();
   }, [selectedCategory, searchTerm, currentPage]);
 
-  // helper to update query params in URL
   const updateQuery = (key, value) => {
     try {
       const params = new URLSearchParams(Array.from(searchParams || []));
       if (value) params.set(key, value);
       else params.delete(key);
-      // reset page when filters change
       params.delete('offset');
       const qs = params.toString();
-      router.push(`/products${qs ? '?' + qs : ''}`);
+      router.push(`/products${qs ? `?${qs}` : ''}`);
     } catch (e) {
       console.error('updateQuery error', e);
     }
@@ -87,9 +81,7 @@ export default function ProductsPage() {
   const fetchCategories = async () => {
     try {
       const response = await fetch('/api/categories');
-      if (!response.ok) {
-        throw new Error(`Categories request failed (${response.status})`);
-      }
+      if (!response.ok) throw new Error(`Categories request failed (${response.status})`);
       const data = await response.json();
       if (data.categories && Array.isArray(data.categories)) {
         setCategories(
@@ -98,8 +90,8 @@ export default function ProductsPage() {
             .filter(Boolean)
         );
       }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
+    } catch (fetchError) {
+      console.error('Error fetching categories:', fetchError);
     }
   };
 
@@ -109,14 +101,8 @@ export default function ProductsPage() {
     try {
       let url = `/api/products?limit=${itemsPerPage}&offset=${(currentPage - 1) * itemsPerPage}`;
 
-      if (selectedCategory) {
-        url += `&category=${selectedCategory}`;
-      }
-
-
-      if (searchTerm) {
-        url += `&search=${searchTerm}`;
-      }
+      if (selectedCategory) url += `&category=${selectedCategory}`;
+      if (searchTerm) url += `&search=${searchTerm}`;
 
       const response = await fetch(url);
       const contentType = response.headers.get('content-type') || '';
@@ -131,15 +117,14 @@ export default function ProductsPage() {
       }
 
       const data = await response.json();
-      
       if (data.products && Array.isArray(data.products)) {
         setProducts(data.products);
         setTotalPages(Math.max(1, Math.ceil((Number(data.total) || 0) / itemsPerPage)));
       }
-    } catch (error) {
-      console.error('Error fetching products:', error);
+    } catch (fetchError) {
+      console.error('Error fetching products:', fetchError);
       setProducts([]);
-      setError(error.message || 'Failed to load products');
+      setError(fetchError.message || t('products.failed'));
     } finally {
       setLoading(false);
     }
@@ -160,46 +145,42 @@ export default function ProductsPage() {
     updateQuery('category', newVal);
   };
 
-  // (Brand/Featured/Trending filters removed)
-
   return (
     <div className="products-container">
       <Navbar />
-      {/* Header */}
       <div className="products-header">
         <div className="header-content">
-          <Link href="/" className="back-link">← Back to Home</Link>
-          <h1>Our Products</h1>
-          <p>Discover our latest collection of premium shoes</p>
+          <Link href="/" className="back-link">{t('products.backHome')}</Link>
+          <h1>{t('products.title')}</h1>
+          <p>{t('products.subtitle')}</p>
         </div>
       </div>
 
       <div className="products-wrapper">
-        {/* Sidebar - Filters */}
         <aside className="products-sidebar">
           <div className="filter-section">
-            <h3>Search</h3>
+            <h3>{t('products.searchTitle')}</h3>
             <form onSubmit={handleSearch} className="search-form">
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder={t('products.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <button type="submit">Search</button>
+              <button type="submit">{t('products.search')}</button>
             </form>
           </div>
 
           <div className="filter-section">
-            <h3>Categories</h3>
+            <h3>{t('products.categories')}</h3>
             <div className="category-list">
               <button
                 className={`category-btn ${selectedCategory === '' ? 'active' : ''}`}
                 onClick={() => handleCategoryChange('')}
               >
-                All Categories
+                {t('products.allCategories')}
               </button>
-              {categories && Array.isArray(categories) && categories.map((category, index) => (
+              {categories.map((category, index) => (
                 (index < maxVisibleCategories || showAllCategories) && (
                   <button
                     key={category}
@@ -211,48 +192,47 @@ export default function ProductsPage() {
                 )
               ))}
             </div>
-            {categories && Array.isArray(categories) && categories.length > maxVisibleCategories && (
+            {categories.length > maxVisibleCategories && (
               <button
                 className="expand-btn"
                 onClick={() => setShowAllCategories(!showAllCategories)}
                 aria-expanded={showAllCategories}
               >
-                <span className="expand-text">{showAllCategories ? HIDE_TEXT : SHOW_MORE_TEXT}</span>
+                <span className="expand-text">{showAllCategories ? t('products.hide') : t('products.showMore')}</span>
                 <span className="chev" aria-hidden="true">›</span>
               </button>
             )}
           </div>
-
-          {/* Brand/Featured/Trending filters removed */}
         </aside>
 
-        {/* Main Content */}
         <div className="products-main">
           {loading ? (
-            <div className="products-loading">Loading products...</div>
+            <div className="products-loading">{t('products.loading')}</div>
           ) : error ? (
             <div className="products-empty">{error}</div>
           ) : (!products || products.length === 0) ? (
-            <div className="products-empty">No products found</div>
+            <div className="products-empty">{t('products.empty')}</div>
           ) : (
             <>
               <div className="products-info">
-                <p>Showing {products.length} products{totalPages > 1 ? ` • Page ${currentPage} of ${totalPages}` : ''}</p>
+                <p>
+                  {t('products.showing').replace('{count}', products.length)}
+                  {totalPages > 1 ? ` • ${t('products.pageInfo').replace('{page}', currentPage).replace('{totalPages}', totalPages)}` : ''}
+                </p>
               </div>
 
-              {/* Products Grid */}
               <div className="products-grid">
-                {products && Array.isArray(products) && products.map((product) => (
+                {products.map((product) => (
                   <div key={product.id} className="product-card">
                     <div className="product-image">
                       <Link href={`/product/${product.id}`}>
                         <img src={product.image_url} alt={product.name} />
                       </Link>
                       {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
-                        <div className="product-badge">Only {product.stock_quantity} left!</div>
+                        <div className="product-badge">{t('products.onlyLeft').replace('{count}', product.stock_quantity)}</div>
                       )}
                       {product.stock_quantity === 0 && (
-                        <div className="product-badge out-of-stock">Out of Stock</div>
+                        <div className="product-badge out-of-stock">{t('products.outOfStock')}</div>
                       )}
                     </div>
 
@@ -266,7 +246,7 @@ export default function ProductsPage() {
                         <Link href={`/product/${product.id}`}>{product.name}</Link>
                       </h3>
                       <p className="product-description">{(product.description || '').substring(0, 60)}...</p>
-                      
+
                       <div className="product-footer">
                         <span className="product-price">${parseFloat(product.price).toFixed(2)}</span>
                         <AddToCartButton product={product} />
@@ -276,7 +256,6 @@ export default function ProductsPage() {
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="pagination">
                   <button
@@ -312,7 +291,7 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
-      <BasketballFooter/>
+      <BasketballFooter />
     </div>
   );
 }

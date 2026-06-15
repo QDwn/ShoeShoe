@@ -5,6 +5,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3001/api'
 export const defaultHomeMedia = {
   heroImages: ['/img nba all star 2026.jpg', '/ja2.jpg'],
   featuredImages: ['/warmup.jpg', '/jerseys.jpg', '/socks.jpg', '/sabrina2.jpg'],
+  featuredTitles: ['Tee Warm Up', 'Jerseys', 'Socks', 'Shoes'],
   shopByBasketballImages: [
     '/all star nba 2026.jpg',
     '/jordan.jpg',
@@ -13,6 +14,7 @@ export const defaultHomeMedia = {
     '/jersey allstar 2026.jpg',
     '/teeshirt allstar 2026.jpg',
   ],
+  shopByBasketballTitles: ['All Star NBA 2026', 'Basketball Shoes', 'Ball Basketball', 'Socks', 'Jerseys', 'Tee Shirt'],
 };
 
 export function getHomeMedia() {
@@ -28,7 +30,9 @@ export function getHomeMedia() {
     return {
       heroImages: normalizeList(parsed?.heroImages, defaultHomeMedia.heroImages),
       featuredImages: normalizeList(parsed?.featuredImages, defaultHomeMedia.featuredImages),
+      featuredTitles: normalizeList(parsed?.featuredTitles, defaultHomeMedia.featuredTitles),
       shopByBasketballImages: normalizeList(parsed?.shopByBasketballImages, defaultHomeMedia.shopByBasketballImages),
+      shopByBasketballTitles: normalizeList(parsed?.shopByBasketballTitles, defaultHomeMedia.shopByBasketballTitles),
     };
   } catch (_error) {
     return defaultHomeMedia;
@@ -39,7 +43,9 @@ export function saveHomeMedia(media) {
   const normalized = {
     heroImages: normalizeList(media?.heroImages, defaultHomeMedia.heroImages),
     featuredImages: normalizeList(media?.featuredImages, defaultHomeMedia.featuredImages),
+    featuredTitles: normalizeList(media?.featuredTitles, defaultHomeMedia.featuredTitles),
     shopByBasketballImages: normalizeList(media?.shopByBasketballImages, defaultHomeMedia.shopByBasketballImages),
+    shopByBasketballTitles: normalizeList(media?.shopByBasketballTitles, defaultHomeMedia.shopByBasketballTitles),
   };
 
   if (typeof window !== 'undefined') {
@@ -98,7 +104,7 @@ export async function uploadHomeMediaFile(file, label) {
 function normalizeList(value, fallback) {
   if (!Array.isArray(value)) return [...fallback];
   const cleaned = value.map((item) => String(item || '').trim());
-  return cleaned.length === fallback.length ? cleaned : [...fallback];
+  return cleaned.length ? cleaned : [...fallback];
 }
 
 function readFileAsDataUrl(file) {

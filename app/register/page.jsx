@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import '../login/page.css';
 import { useLanguage } from '../../src/context/LanguageContext';
+import '../login/page.css';
 
 export default function RegisterPage() {
   const { t } = useLanguage();
@@ -25,37 +25,34 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          email: registerEmail, 
+        body: JSON.stringify({
+          email: registerEmail,
           password: registerPassword,
-          confirmPassword: confirmPassword,
-          name: registerName
+          confirmPassword,
+          name: registerName,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('✅ ' + data.message);
+        setMessage(`✓ ${data.message || t('auth.registerSuccess')}`);
         setIsSuccess(true);
-        
-        // Lưu user vào localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
         window.dispatchEvent(new Event('user-changed'));
-        
         setRegisterEmail('');
         setRegisterPassword('');
         setConfirmPassword('');
         setRegisterName('');
-        
+
         setTimeout(() => {
           window.location.href = '/login';
         }, 1500);
       } else {
-        setMessage('❌ ' + data.message);
+        setMessage(`✕ ${data.message || t('auth.registerFailed')}`);
       }
     } catch {
-      setMessage('❌ ' + t('auth.cannotConnect'));
+      setMessage(`✕ ${t('auth.cannotConnect')}`);
     }
   };
 
@@ -65,44 +62,45 @@ export default function RegisterPage() {
         <h2>{t('auth.signUp')}</h2>
 
         {message && (
-          <div style={{ 
-            padding: '10px', 
-            marginBottom: '15px', 
+          <div style={{
+            padding: '10px',
+            marginBottom: '15px',
             borderRadius: '5px',
             textAlign: 'center',
             backgroundColor: isSuccess ? '#d4edda' : '#f8d7da',
             color: isSuccess ? '#155724' : '#721c24',
-            fontSize: '14px'
-          }}>
+            fontSize: '14px',
+          }}
+          >
             {message}
           </div>
         )}
 
         <form onSubmit={handleRegister}>
-          <input 
-            type="text" 
-            placeholder={t('auth.fullName')} 
+          <input
+            type="text"
+            placeholder={t('auth.fullName')}
             value={registerName}
             onChange={(e) => setRegisterName(e.target.value)}
             required
           />
-          <input 
-            type="email" 
-            placeholder={t('auth.email')} 
+          <input
+            type="email"
+            placeholder={t('auth.email')}
             value={registerEmail}
             onChange={(e) => setRegisterEmail(e.target.value)}
             required
           />
-          <input 
-            type="password" 
-            placeholder={t('auth.minPassword')} 
+          <input
+            type="password"
+            placeholder={t('auth.minPassword')}
             value={registerPassword}
             onChange={(e) => setRegisterPassword(e.target.value)}
             required
           />
-          <input 
-            type="password" 
-            placeholder={t('auth.confirmPassword')} 
+          <input
+            type="password"
+            placeholder={t('auth.confirmPassword')}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -111,7 +109,7 @@ export default function RegisterPage() {
         </form>
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
-          {t('auth.alreadyAccount')} {' '}
+          {t('auth.alreadyAccount')}{' '}
           <Link href="/login" style={{ color: '#0066cc', textDecoration: 'none', fontWeight: 'bold' }}>
             {t('auth.signInNow')}
           </Link>

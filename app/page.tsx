@@ -11,7 +11,7 @@ import { useLanguage } from "../src/context/LanguageContext"
 import { defaultHomeMedia, getHomeMedia, HOME_MEDIA_EVENT, fetchHomeMediaConfig } from "../src/lib/homeMedia"
 
 export default function HomeImage(){
-  const { t } = useLanguage()
+  const { t } = useLanguage() as { t: (path: string) => string }
   const [images, setImages] = useState(defaultHomeMedia.heroImages)
   const [index,setIndex] = useState(0)
   const [progress,setProgress] = useState(0)
@@ -27,8 +27,10 @@ export default function HomeImage(){
       })
       .catch(() => {})
 
-    const syncMedia = (event) => {
-      const nextImages = event?.detail?.heroImages || getHomeMedia().heroImages
+    const syncMedia = (event?: Event) => {
+      const nextImages =
+        (event && 'detail' in event ? (event as CustomEvent<{ heroImages?: string[] }>).detail?.heroImages : undefined) ||
+        getHomeMedia().heroImages
       setImages(nextImages)
       setIndex((current) => (nextImages.length ? current % nextImages.length : 0))
     }

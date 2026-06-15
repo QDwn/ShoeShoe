@@ -1,22 +1,28 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import './AIChatWidget.css';
 
 const DEFAULT_API_URL = process.env.NEXT_PUBLIC_AI_CHAT_API_URL || '/api/ai/chat';
 
 export default function AIChatWidget() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Xin chào, tôi có thể kiểm tra tồn kho, size còn hàng và gợi ý size theo chiều dài chân.'
-    }
+      content: t('aiChat.greeting'),
+    },
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    setMessages([{ role: 'assistant', content: t('aiChat.greeting') }]);
+  }, [t]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,30 +34,30 @@ export default function AIChatWidget() {
 
     setInput('');
     setError('');
-    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    setMessages((prev) => [...prev, { role: 'user', content: text }]);
     setLoading(true);
 
     try {
       const response = await fetch(DEFAULT_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text }),
       });
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.detail || data?.message || 'AI không phản hồi.');
+        throw new Error(data?.detail || data?.message || t('aiChat.noReply'));
       }
 
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: data.answer || 'Tôi chưa tìm thấy câu trả lời phù hợp.'
-        }
+          content: data.answer || t('aiChat.noResponse'),
+        },
       ]);
     } catch (err) {
-      setError(err.message || 'Lỗi kết nối AI.');
+      setError(err.message || t('aiChat.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -66,16 +72,16 @@ export default function AIChatWidget() {
 
   return (
     <>
-      <button className="ai-chat-fab" type="button" onClick={() => setOpen(v => !v)}>
+      <button className="ai-chat-fab" type="button" onClick={() => setOpen((v) => !v)}>
         AI
       </button>
 
       {open && (
-        <div className="ai-chat-panel" role="dialog" aria-label="AI tư vấn khách hàng">
+        <div className="ai-chat-panel" role="dialog" aria-label={t('aiChat.panelLabel')}>
           <div className="ai-chat-header">
             <div>
-              <div className="ai-chat-kicker">AI Advisor</div>
-              <h3>Tư vấn khách hàng</h3>
+              <div className="ai-chat-kicker">{t('aiChat.kicker')}</div>
+              <h3>{t('aiChat.title')}</h3>
             </div>
             <button type="button" className="ai-chat-close" onClick={() => setOpen(false)}>
               ×
@@ -88,7 +94,7 @@ export default function AIChatWidget() {
                 {msg.content}
               </div>
             ))}
-            {loading && <div className="ai-chat-message assistant">Đang tra cứu CSDL...</div>}
+            {loading && <div className="ai-chat-message assistant">{t('aiChat.loading')}</div>}
             <div ref={bottomRef} />
           </div>
 
@@ -99,11 +105,11 @@ export default function AIChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Ví dụ: sản phẩm này còn size 40 không?"
+              placeholder={t('aiChat.placeholder')}
               rows={2}
             />
             <button type="button" onClick={sendMessage} disabled={loading}>
-              Gửi
+              {t('aiChat.send')}
             </button>
           </div>
         </div>

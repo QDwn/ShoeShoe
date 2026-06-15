@@ -1,9 +1,22 @@
-.admin-shell {
+.admin-page {
   min-height: 100vh;
+  background: #f4f5f7;
+}
+
+.admin-shell {
+  min-height: calc(100vh - 88px);
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   background: #f4f5f7;
   color: #101828;
+}
+
+.admin-access-loading {
+  min-height: calc(100vh - 88px);
+  display: grid;
+  place-items: center;
+  color: #475467;
+  font-size: 16px;
 }
 
 .admin-sidebar {
@@ -773,10 +786,15 @@
 }
 
 .product-cell span {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
   color: #6b7280;
   font-size: 12px;
   margin-top: 4px;
+  line-height: 1.5;
+  max-width: 220px;
 }
 
 .thumb-fallback {
@@ -845,6 +863,17 @@
 .home-media-heading h3 {
   margin: 6px 0 0;
   font-size: 22px;
+}
+
+.home-media-title-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.home-media-title-actions h3 {
+  margin: 6px 0 0;
 }
 
 .home-hero-preview {
@@ -955,6 +984,11 @@
 
 .media-overlay-content strong {
   font-size: 16px;
+}
+
+.media-custom-title {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .background-preview {
@@ -1179,6 +1213,12 @@
 
 .sort-th:hover {
   text-decoration: underline;
+}
+
+.action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .order-modal {

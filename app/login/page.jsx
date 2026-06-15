@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import './page.css';
 import { useLanguage } from '../../src/context/LanguageContext';
+import './page.css';
 
 export default function LoginPage() {
   const { t } = useLanguage();
@@ -29,21 +29,18 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('✅ ' + data.message);
+        setMessage(`✓ ${data.message || t('auth.loginSuccess')}`);
         setIsSuccess(true);
-        
-        // Lưu user vào localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
         window.dispatchEvent(new Event('user-changed'));
-        
         setTimeout(() => {
-          window.location.href = '/'; 
+          window.location.href = '/';
         }, 1500);
       } else {
-        setMessage('❌ ' + data.message);
+        setMessage(`✕ ${data.message || t('auth.loginFailed')}`);
       }
     } catch {
-      setMessage('❌ ' + t('auth.cannotConnect'));
+      setMessage(`✕ ${t('auth.cannotConnect')}`);
     }
   };
 
@@ -53,30 +50,31 @@ export default function LoginPage() {
         <h2>{t('auth.signIn')}</h2>
 
         {message && (
-          <div style={{ 
-            padding: '10px', 
-            marginBottom: '15px', 
+          <div style={{
+            padding: '10px',
+            marginBottom: '15px',
             borderRadius: '5px',
             textAlign: 'center',
             backgroundColor: isSuccess ? '#d4edda' : '#f8d7da',
             color: isSuccess ? '#155724' : '#721c24',
-            fontSize: '14px'
-          }}>
+            fontSize: '14px',
+          }}
+          >
             {message}
           </div>
         )}
 
         <form onSubmit={handleLogin}>
-          <input 
-            type="email" 
-            placeholder={t('auth.email')} 
+          <input
+            type="email"
+            placeholder={t('auth.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <input 
-            type="password" 
-            placeholder={t('auth.password')} 
+          <input
+            type="password"
+            placeholder={t('auth.password')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -85,7 +83,7 @@ export default function LoginPage() {
         </form>
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
-          {t('auth.noAccount')} {' '}
+          {t('auth.noAccount')}{' '}
           <Link href="/register" style={{ color: '#0066cc', textDecoration: 'none', fontWeight: 'bold' }}>
             {t('auth.signUpNow')}
           </Link>

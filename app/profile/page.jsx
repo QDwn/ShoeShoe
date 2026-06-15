@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useLanguage } from '../../src/context/LanguageContext';
 import './profile.css';
 
 function splitName(name = '') {
@@ -23,6 +24,7 @@ function getAvatarLabel(user) {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const fileInputRef = useRef(null);
 
   const [user, setUser] = useState(null);
@@ -63,9 +65,7 @@ export default function ProfilePage() {
     }
   }, [router]);
 
-  const fullName = useMemo(() => {
-    return `${firstName} ${lastName}`.trim().replace(/\s+/g, ' ');
-  }, [firstName, lastName]);
+  const fullName = useMemo(() => `${firstName} ${lastName}`.trim().replace(/\s+/g, ' '), [firstName, lastName]);
 
   const persistUser = (updatedUser) => {
     setUser(updatedUser);
@@ -100,7 +100,7 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        showResult(false, data.message || 'Cannot update profile');
+        showResult(false, data.message || t('profile.cannotUpdateProfile'));
         return;
       }
 
@@ -108,9 +108,9 @@ export default function ProfilePage() {
       persistUser(updatedUser);
       setAvatarPreview(updatedUser.avatar || '');
       setCurrentAvatar(updatedUser.avatar || '');
-      showResult(true, data.message || 'Profile updated');
+      showResult(true, data.message || t('profile.profileUpdated'));
     } catch {
-      showResult(false, 'Cannot connect to Server');
+      showResult(false, t('profile.cannotConnect'));
     } finally {
       setSaving(false);
     }
@@ -138,7 +138,7 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        showResult(false, data.message || 'Cannot change password');
+        showResult(false, data.message || t('profile.cannotChangePassword'));
         return;
       }
 
@@ -147,9 +147,9 @@ export default function ProfilePage() {
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      showResult(true, data.message || 'Password updated');
+      showResult(true, data.message || t('profile.passwordUpdated'));
     } catch {
-      showResult(false, 'Cannot connect to Server');
+      showResult(false, t('profile.cannotConnect'));
     } finally {
       setSaving(false);
     }
@@ -168,19 +168,17 @@ export default function ProfilePage() {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Upload failed');
+      throw new Error(data.message || t('profile.uploadFailed'));
     }
 
     const updatedUser = { ...user, ...data.user };
     persistUser(updatedUser);
     setAvatarPreview(updatedUser.avatar || '');
     setCurrentAvatar(updatedUser.avatar || '');
-    showResult(true, data.message || 'Avatar updated');
+    showResult(true, data.message || t('profile.avatarUpdated'));
   };
 
-  const handleAvatarPick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleAvatarPick = () => fileInputRef.current?.click();
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
@@ -196,7 +194,7 @@ export default function ProfilePage() {
         await uploadAvatarToServer(base64String);
       } catch (error) {
         setAvatarPreview(currentAvatar || '');
-        showResult(false, error.message || 'Cannot upload avatar');
+        showResult(false, error.message || t('profile.cannotUploadAvatar'));
       }
     };
     reader.readAsDataURL(file);
@@ -216,22 +214,20 @@ export default function ProfilePage() {
       });
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Cannot remove avatar');
-      }
+      if (!response.ok) throw new Error(data.message || t('profile.cannotRemoveAvatar'));
 
       const updatedUser = { ...user, ...data.user };
       persistUser(updatedUser);
       setAvatarPreview('');
       setCurrentAvatar('');
-      showResult(true, 'Avatar removed');
+      showResult(true, t('profile.avatarRemoved'));
     } catch (error) {
-      showResult(false, error.message || 'Cannot remove avatar');
+      showResult(false, error.message || t('profile.cannotRemoveAvatar'));
     }
   };
 
   if (!user) {
-    return <div className="profile-loading">Loading...</div>;
+    return <div className="profile-loading">{t('profile.loading')}</div>;
   }
 
   return (
@@ -239,11 +235,11 @@ export default function ProfilePage() {
       <div className="profile-shell">
         <div className="profile-topbar">
           <div>
-            <p className="profile-eyebrow">Account</p>
-            <h1>Account settings</h1>
+            <p className="profile-eyebrow">{t('profile.account')}</p>
+            <h1>{t('profile.accountSettings')}</h1>
           </div>
           <Link href="/" className="profile-back-link">
-            Back to Home
+            {t('profile.backHome')}
           </Link>
         </div>
 
@@ -256,7 +252,7 @@ export default function ProfilePage() {
         <form className="profile-panel" onSubmit={handleSaveProfile}>
           <section className="profile-section">
             <div className="section-head">
-              <h2>Profile Picture</h2>
+              <h2>{t('profile.profilePicture')}</h2>
             </div>
 
             <div className="avatar-row">
@@ -271,7 +267,7 @@ export default function ProfilePage() {
               <div className="avatar-actions">
                 <div className="avatar-buttons">
                   <button type="button" className="btn btn-primary" onClick={handleAvatarPick}>
-                    Upload Image
+                    {t('profile.uploadImage')}
                   </button>
                   <button
                     type="button"
@@ -279,10 +275,10 @@ export default function ProfilePage() {
                     onClick={handleRemoveAvatar}
                     disabled={!avatarPreview}
                   >
-                    Remove
+                    {t('profile.remove')}
                   </button>
                 </div>
-                <p className="helper-text">We support PNGs, JPEGs and GIFs under 10MB</p>
+                <p className="helper-text">{t('profile.supportedFormats')}</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -297,12 +293,12 @@ export default function ProfilePage() {
           <section className="profile-section">
             <div className="grid-2">
               <div className="field">
-                <label>First Name</label>
-                <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" />
+                <label>{t('profile.firstName')}</label>
+                <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder={t('profile.firstNamePlaceholder')} />
               </div>
               <div className="field">
-                <label>Last Name</label>
-                <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" />
+                <label>{t('profile.lastName')}</label>
+                <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder={t('profile.lastNamePlaceholder')} />
               </div>
             </div>
           </section>
@@ -310,18 +306,18 @@ export default function ProfilePage() {
           <section className="profile-section">
             <div className="grid-email">
               <div className="field">
-                <label>Email</label>
+                <label>{t('profile.email')}</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address"
+                  placeholder={t('profile.emailPlaceholder')}
                 />
-                <p className="helper-text">Used to log in to your account</p>
+                <p className="helper-text">{t('profile.emailHelp')}</p>
               </div>
               <div className="email-action">
                 <button type="button" className="btn btn-secondary wide">
-                  Edit Email
+                  {t('profile.editEmail')}
                 </button>
               </div>
             </div>
@@ -344,10 +340,10 @@ export default function ProfilePage() {
                 setMessage('');
               }}
             >
-              Cancel
+              {t('profile.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? t('profile.saving') : t('profile.save')}
             </button>
           </div>
         </form>
@@ -356,15 +352,15 @@ export default function ProfilePage() {
           <section className="profile-section" id="password-section">
             <div className="password-toggle-row">
               <div>
-                <h2>Password</h2>
-                <p className="helper-text">Log in with your password instead of using temporary login codes</p>
+                <h2>{t('profile.password')}</h2>
+                <p className="helper-text">{t('profile.passwordHelp')}</p>
               </div>
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setShowPasswordFields((prev) => !prev)}
               >
-                {showPasswordFields ? 'Hide Password' : 'Change Password'}
+                {showPasswordFields ? t('profile.hidePassword') : t('profile.changePassword')}
               </button>
             </div>
 
@@ -372,32 +368,32 @@ export default function ProfilePage() {
               <>
                 <div className="grid-3 password-fields">
                   <div className="field">
-                    <label>Current Password</label>
+                    <label>{t('profile.currentPassword')}</label>
                     <input
                       type="password"
                       value={oldPassword}
                       onChange={(e) => setOldPassword(e.target.value)}
-                      placeholder="Current password"
+                      placeholder={t('profile.currentPasswordPlaceholder')}
                       required={showPasswordFields}
                     />
                   </div>
                   <div className="field">
-                    <label>New Password</label>
+                    <label>{t('profile.newPassword')}</label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="New password"
+                      placeholder={t('profile.newPasswordPlaceholder')}
                       required={showPasswordFields}
                     />
                   </div>
                   <div className="field">
-                    <label>Confirm Password</label>
+                    <label>{t('profile.confirmPassword')}</label>
                     <input
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm password"
+                      placeholder={t('profile.confirmPasswordPlaceholder')}
                       required={showPasswordFields}
                     />
                   </div>
@@ -414,10 +410,10 @@ export default function ProfilePage() {
                       setShowPasswordFields(false);
                     }}
                   >
-                    Cancel
+                    {t('profile.cancel')}
                   </button>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Password'}
+                    {saving ? t('profile.saving') : t('profile.savePassword')}
                   </button>
                 </div>
               </>

@@ -5,17 +5,35 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 const CartContext = createContext();
 const FALLBACK_PRODUCT_IMAGE = '/logo.png';
 
-function getStoredUserId() {
+function getStoredUser() {
   try {
     const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser)?.id || null : null;
+    return storedUser ? JSON.parse(storedUser) || null : null;
   } catch {
     return null;
   }
 }
 
+function getStoredUserId() {
+  return getStoredUser()?.id || null;
+}
+
+function hasCartAccess(user) {
+  if (!user?.id) return false;
+
+  const rawRoles = Array.isArray(user?.roles)
+    ? user.roles
+    : String(user?.roles || user?.role || '')
+        .split(',')
+        .map((role) => role.trim())
+        .filter(Boolean);
+
+  if (!rawRoles.length) return true;
+  return rawRoles.some((role) => ['user', 'admin'].includes(String(role).toLowerCase()));
+}
+
 function getCartStorageKey(userId) {
-  return userId ? `cart_user_${userId}` : 'cart_guest';
+  return userId ? `cart_user_${userId}` : null;
 }
 
 function normalizeImageUrl(imageUrl) {
@@ -42,9 +60,14 @@ export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [lastAdded, setLastAdded] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [canUseCart, setCanUseCart] = useState(false);
 
   useEffect(() => {
-    const syncUser = () => setUserId(getStoredUserId());
+    const syncUser = () => {
+      const storedUser = getStoredUser();
+      setUserId(storedUser?.id || null);
+      setCanUseCart(hasCartAccess(storedUser));
+    };
     syncUser();
     window.addEventListener('storage', syncUser);
     window.addEventListener('user-changed', syncUser);
@@ -55,6 +78,11 @@ export function CartProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (!canUseCart || !userId) {
+      setCart([]);
+      return;
+    }
+
     try {
       const raw = localStorage.getItem(getCartStorageKey(userId));
       if (raw) setCart(JSON.parse(raw).map(normalizeCartItem));
@@ -62,7 +90,7 @@ export function CartProvider({ children }) {
     } catch (e) {
       console.error('Failed to parse cart from localStorage', e);
     }
-  }, [userId]);
+  }, [userId, canUseCart]);
 
   useEffect(() => {
     const itemsToRefresh = cart.filter((item) => item?.id && needsImageRefresh(item));
@@ -113,6 +141,8 @@ export function CartProvider({ children }) {
   }, [cart]);
 
   useEffect(() => {
+    if (!canUseCart || !userId) return;
+
     // ensure each item has a unique cartItemId so variants (size) are distinct
     const normalized = cart.map(i => ({
       ...normalizeCartItem(i),
@@ -132,9 +162,13 @@ export function CartProvider({ children }) {
     if (JSON.stringify(normalized) !== JSON.stringify(cart)) {
       setCart(normalized);
     }
-  }, [cart, userId]);
+  }, [cart, userId, canUseCart]);
 
   function addItem(item, quantity = 1) {
+    if (!canUseCart || !userId) {
+      return false;
+    }
+
     setCart(prev => {
       const key = item.cartItemId || (item.id + '-' + (item.size || 'NOSIZE'));
       const idx = prev.findIndex(i => i.cartItemId === key || (i.id === item.id && (i.size || 'NOSIZE') === (item.size || 'NOSIZE')));
@@ -152,16 +186,20 @@ export function CartProvider({ children }) {
       window.dispatchEvent(new Event('recommendations-updated'));
       return [...prev, newItem];
     });
+
+    return true;
   }
 
   // Note: Do not auto-clear lastAdded here; let the toast component
   // manage visibility and clearing so we can play exit animations.
 
   function updateItem(cartItemId, quantity) {
+    if (!canUseCart || !userId) return;
     setCart(prev => prev.map(i => i.cartItemId === cartItemId ? { ...i, quantity } : i));
   }
 
   function removeItem(cartItemId) {
+    if (!canUseCart || !userId) return;
     setCart(prev => prev.filter(i => i.cartItemId !== cartItemId));
   }
 
@@ -180,7 +218,7 @@ export function CartProvider({ children }) {
   }
 
   return (
-    <CartContext.Provider value={{ cart, addItem, updateItem, removeItem, clearCart, getCount, getTotal, lastAdded, setLastAdded }}>
+    <CartContext.Provider value={{ cart, addItem, updateItem, removeItem, clearCart, getCount, getTotal, lastAdded, setLastAdded, canUseCart }}>
       {children}
     </CartContext.Provider>
   );

@@ -12,8 +12,12 @@ function resolveImageUrl(imageUrl) {
   return `/${value}`;
 }
 
+function formatProductPrice(price) {
+  return `$${Number(price || 0).toFixed(2)}`;
+}
+
 export default function TrendRecommendationRow() {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const [products, setProducts] = useState([]);
   const [mode, setMode] = useState('fallback');
   const [userId, setUserId] = useState(null);
@@ -28,6 +32,7 @@ export default function TrendRecommendationRow() {
         setUserId(null);
       }
     };
+
     const refreshRecommendations = () => setRefreshKey((value) => value + 1);
 
     syncUser();
@@ -78,8 +83,8 @@ export default function TrendRecommendationRow() {
   return (
     <section className="trend-recommendation">
       <div className="trend-recommendation__label">
-        <span>{mode === 'personalized' ? 'Recommended for you' : 'You might like'}</span>
-        <span>{mode === 'personalized' ? 'Based on your searches, cart and orders' : 'Based on your interests'}</span>
+        <span>{mode === 'personalized' ? t('recommendations.recommendedForYou') : t('recommendations.youMightLike')}</span>
+        <span>{mode === 'personalized' ? t('recommendations.basedOnProfile') : t('recommendations.basedOnInterests')}</span>
       </div>
 
       <div className="trend-recommendation__row">
@@ -89,7 +94,7 @@ export default function TrendRecommendationRow() {
               <img src={resolveImageUrl(product.image_url)} alt={product.name} />
             </div>
             <h3>{product.name}</h3>
-            <p>{Number(product.price || 0).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')} đ</p>
+            <p>{formatProductPrice(product.price)}</p>
           </Link>
         ))}
       </div>

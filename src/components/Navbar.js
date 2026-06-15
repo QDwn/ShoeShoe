@@ -7,6 +7,25 @@ import { useLanguage } from '../context/LanguageContext';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
+function normalizeUserRoles(user) {
+  const rawRoles = Array.isArray(user?.roles)
+    ? user.roles
+    : String(user?.roles || user?.role || '')
+      .split(',')
+      .map((role) => role.trim())
+      .filter(Boolean);
+
+  return rawRoles
+    .map((role) => {
+      if (typeof role === 'string') return role.trim().toLowerCase();
+      if (role && typeof role === 'object') {
+        return String(role.name || role.role || role.label || '').trim().toLowerCase();
+      }
+      return '';
+    })
+    .filter(Boolean);
+}
+
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -17,12 +36,15 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchMessage, setSearchMessage] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const { getCount } = useCart();
+  const { getCount, canUseCart } = useCart();
   const { language, setLanguage, t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const fileInputRef = useRef(null);
   const searchWrapRef = useRef(null);
+
+  const isAdminUser = normalizeUserRoles(user).includes('admin');
+
   const getCurrentUserId = () => {
     try {
       const storedUser = localStorage.getItem('user');
@@ -55,10 +77,18 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const syncUser = () => {
+      try {
+        const storedUser = localStorage.getItem('user');
+        setUser(storedUser ? JSON.parse(storedUser) : null);
+      } catch {
+        setUser(null);
+      }
+    };
+
+    syncUser();
+    window.addEventListener('user-changed', syncUser);
+    return () => window.removeEventListener('user-changed', syncUser);
   }, []);
 
   useEffect(() => {
@@ -87,8 +117,11 @@ export default function Navbar() {
     window.location.href = '/';
   };
 
-  const toggleDropdown = () => {
-    setShowDropdown(!showDropdown);
+  const handleGuestCartAccess = (event) => {
+    if (canUseCart) return;
+    event.preventDefault();
+    alert(t('nav.guestCartRequired'));
+    router.push('/register');
   };
 
   const closeSearchPanel = () => {
@@ -179,9 +212,14 @@ export default function Navbar() {
   const menuItems = [
     { label: t('nav.home'), href: '/' },
     { label: t('nav.products'), href: '/products' },
+    { label: t('nav.trackOrders'), href: '/orders' },
     { label: t('nav.stores'), href: '/stores' },
     { label: t('nav.about'), href: '/about' },
   ];
+
+  if (isAdminUser) {
+    menuItems.push({ label: 'Admin', href: '/admin' });
+  }
 
   return (
     <nav className="navbar">
@@ -219,11 +257,11 @@ export default function Navbar() {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('nav.searchProducts') || 'Search products...'}
-              aria-label={t('nav.searchProducts') || 'Search products'}
+              placeholder={t('nav.searchProducts')}
+              aria-label={t('nav.searchProducts')}
             />
             <button type="submit" className="navbar-inline-search-submit">
-              {t('nav.search') || 'Search'}
+              {t('nav.search')}
             </button>
             <button
               type="button"
@@ -234,7 +272,7 @@ export default function Navbar() {
               }}
               aria-label={t('nav.searchByImage')}
             >
-              {t('nav.searchByImage') || 'Image'}
+              {t('nav.searchByImage')}
             </button>
           </form>
         </div>
@@ -272,7 +310,7 @@ export default function Navbar() {
 
             {searchPreview && (
               <div className="navbar-search-preview">
-                <img src={searchPreview} alt="Selected image" />
+                <img src={searchPreview} alt={t('nav.chooseImage')} />
               </div>
             )}
 
@@ -290,7 +328,7 @@ export default function Navbar() {
                   <img src={resolveImageUrl(item.image_url)} alt={item.name} />
                   <div className="navbar-search-result-meta">
                     <strong>{item.name}</strong>
-                    <span>{Number(item.price).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')} đ</span>
+                    <span>${Number(item.price || 0).toFixed(2)}</span>
                     <span>
                       {item.similarity_score}% {t('nav.similar')}
                     </span>
@@ -303,7 +341,7 @@ export default function Navbar() {
 
         {user ? (
           <div className="navbar-profile-container">
-            <button className="navbar-icon-button" onClick={toggleDropdown} type="button" aria-label={t('nav.account')}>
+            <button className="navbar-icon-button" onClick={() => setShowDropdown((prev) => !prev)} type="button" aria-label={t('nav.account')}>
               {user.avatar ? (
                 <img src={user.avatar} alt="Avatar" className="navbar-avatar navbar-avatar-icon" />
               ) : (
@@ -328,7 +366,12 @@ export default function Navbar() {
           </Link>
         )}
 
-        <Link href="/cart" className="navbar-icon-button navbar-cart-link" aria-label={`${t('nav.cart')} (${getCount()})`}>
+        <Link
+          href="/cart"
+          className="navbar-icon-button navbar-cart-link"
+          aria-label={`${t('nav.cart')} (${getCount()})`}
+          onClick={handleGuestCartAccess}
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 18.5A1.5 1.5 0 1 0 8.5 20 1.5 1.5 0 0 0 7 18.5Zm10 0A1.5 1.5 0 1 0 18.5 20 1.5 1.5 0 0 0 17 18.5ZM6.2 6l.4 2H20l-1.3 6.2a2 2 0 0 1-2 1.6H9a2 2 0 0 1-2-1.6L5.2 4H2V2h4a1 1 0 0 1 1 .8L7.4 6Z" />
           </svg>

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Navbar from '../../src/components/Navbar';
 import './admin.css';
 import {
   defaultHomeMedia,
@@ -25,6 +27,16 @@ const initialProductForm = {
   image_url: '',
 };
 
+const initialVoucherForm = {
+  code: '',
+  discount_percent: '',
+  description: '',
+  max_uses: '',
+  starts_at: '',
+  ends_at: '',
+  active: true,
+};
+
 const PRODUCT_TYPE_OPTIONS = {
   shoe: {
     label: 'Giày',
@@ -47,6 +59,25 @@ const heroSlotLabels = ['Hero Slide 1', 'Hero Slide 2'];
 const featuredSlotLabels = ['Tee Warm Up', 'Jerseys', 'Socks', 'Shoes'];
 const shopSlotLabels = ['All Star NBA 2026', 'Basketball Shoes', 'Ball Basketball', 'Socks', 'Jerseys', 'Tee Shirt'];
 
+function normalizeUserRoles(user) {
+  const rawRoles = Array.isArray(user?.roles)
+    ? user.roles
+    : String(user?.roles || user?.role || '')
+        .split(',')
+        .map((role) => role.trim())
+        .filter(Boolean);
+
+  return rawRoles
+    .map((role) => {
+      if (typeof role === 'string') return role.trim().toLowerCase();
+      if (role && typeof role === 'object') {
+        return String(role.name || role.role || role.label || '').trim().toLowerCase();
+      }
+      return '';
+    })
+    .filter(Boolean);
+}
+
 function inferProductTypeFromSizes(sizes) {
   const normalized = (Array.isArray(sizes) ? sizes : []).map((size) => String(size).trim().toLowerCase());
   if (!normalized.length) return 'shoe';
@@ -57,12 +88,15 @@ function inferProductTypeFromSizes(sizes) {
 }
 
 export default function AdminPanel() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('background');
+  const [accessChecked, setAccessChecked] = useState(false);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [roles, setRoles] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
+  const [vouchers, setVouchers] = useState([]);
   const [stats, setStats] = useState({ products: 0, users: 0, orders: 0, revenue: 0, sales: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -76,13 +110,15 @@ export default function AdminPanel() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [userForm, setUserForm] = useState({ name: '', email: '', roles: 'user' });
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [editingVoucher, setEditingVoucher] = useState(null);
+  const [voucherForm, setVoucherForm] = useState(initialVoucherForm);
   const [createdFilter, setCreatedFilter] = useState('');
   const [salesFilter, setSalesFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('');
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [productForm, setProductForm] = useState(initialProductForm);
-  const [newCategory, setNewCategory] = useState('');
   const [showBackgroundPreview, setShowBackgroundPreview] = useState(true);
   const [homeMedia, setHomeMedia] = useState(defaultHomeMedia);
   const [homeMediaSaving, setHomeMediaSaving] = useState(false);
@@ -92,19 +128,44 @@ export default function AdminPanel() {
   const [orderSort, setOrderSort] = useState({ key: 'created_at', direction: 'desc' });
 
   useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) {
+        router.replace('/login');
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      const roles = normalizeUserRoles(user);
+      const isAdmin = roles.includes('admin');
+      if (!isAdmin) {
+        router.replace('/');
+        return;
+      }
+
+      setAccessChecked(true);
+    } catch {
+      router.replace('/login');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!accessChecked) return;
     setHomeMedia(getHomeMedia());
     fetchStoredHomeMedia();
     fetchDashboard();
     fetchCategories();
     fetchRoles();
-  }, []);
+  }, [accessChecked]);
 
   useEffect(() => {
+    if (!accessChecked) return;
     if (activeTab === 'dashboard') fetchDashboard();
     if (activeTab === 'products') fetchProducts();
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'users') fetchUsers();
-  }, [activeTab]);
+    if (activeTab === 'vouchers') fetchVouchers();
+  }, [activeTab, accessChecked]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -358,6 +419,18 @@ export default function AdminPanel() {
     }
   };
 
+  const fetchVouchers = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch('/coupons');
+      setVouchers(data.coupons || []);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchRoles = async () => {
     try {
       const data = await apiFetch('/admin/roles');
@@ -447,6 +520,59 @@ export default function AdminPanel() {
     }
   };
 
+  const openVoucherModal = (voucher = null) => {
+    setEditingVoucher(voucher);
+    setVoucherForm(voucher ? {
+      code: voucher.code || '',
+      discount_percent: String(voucher.discount_percent ?? ''),
+      description: voucher.description || '',
+      max_uses: voucher.max_uses === null || voucher.max_uses === undefined ? '' : String(voucher.max_uses),
+      starts_at: voucher.starts_at ? new Date(voucher.starts_at).toISOString().slice(0, 16) : '',
+      ends_at: voucher.ends_at ? new Date(voucher.ends_at).toISOString().slice(0, 16) : '',
+      active: voucher.active !== false,
+    } : initialVoucherForm);
+    setShowVoucherModal(true);
+  };
+
+  const handleSaveVoucher = async () => {
+    try {
+      const payload = {
+        code: voucherForm.code,
+        discount_percent: Number(voucherForm.discount_percent || 0),
+        description: voucherForm.description,
+        max_uses: voucherForm.max_uses === '' ? null : Number(voucherForm.max_uses),
+        starts_at: voucherForm.starts_at || null,
+        ends_at: voucherForm.ends_at || null,
+        active: voucherForm.active,
+      };
+
+      const path = editingVoucher ? `/coupons/${editingVoucher.id}` : '/coupons';
+      const method = editingVoucher ? 'PUT' : 'POST';
+      await apiFetch(path, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      setShowVoucherModal(false);
+      setEditingVoucher(null);
+      setVoucherForm(initialVoucherForm);
+      fetchVouchers();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const handleDeleteVoucher = async (voucherId) => {
+    if (!confirm('Bạn chắc chắn muốn xóa voucher này?')) return;
+    try {
+      await apiFetch(`/coupons/${voucherId}`, { method: 'DELETE' });
+      setVouchers((prev) => prev.filter((voucher) => voucher.id !== voucherId));
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const visibleProducts = useMemo(() => {
     const term = productSearch.trim().toLowerCase();
     return [...products]
@@ -519,20 +645,6 @@ export default function AdminPanel() {
       ...prev,
       stockBySize: { ...prev.stockBySize, [size]: value },
     }));
-  };
-
-  const handleAddCategory = async () => {
-    const value = newCategory.trim();
-    if (!value) return;
-    const exists = categories.some((c) => String(c.name || c).toLowerCase() === value.toLowerCase());
-    if (!exists) {
-      setCategories((prev) => [...prev, { id: `local-${Date.now()}`, name: value }]);
-    }
-    setProductForm((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(value) ? prev.categories : [...prev.categories, value],
-    }));
-    setNewCategory('');
   };
 
   const handleProductTypeChange = (nextType) => {
@@ -633,10 +745,88 @@ export default function AdminPanel() {
   const clearMediaSlot = async (section, index) => {
     try {
       await syncHomeMediaState((prev) => {
-        const fallbackList = defaultHomeMedia[section] || [];
         const nextList = [...prev[section]];
-        nextList[index] = fallbackList[index] || '';
+        nextList[index] = '';
         return { ...prev, [section]: nextList };
+      });
+    } catch (_error) {}
+  };
+
+  const getTitleSection = (section) => {
+    if (section === 'featuredImages') return 'featuredTitles';
+    if (section === 'shopByBasketballImages') return 'shopByBasketballTitles';
+    return null;
+  };
+
+  const getResolvedMediaTitle = (section, index) => {
+    const titleSection = getTitleSection(section);
+    if (!titleSection) return '';
+
+    const explicitTitle = String(homeMedia[titleSection]?.[index] || '').trim();
+    if (explicitTitle) return explicitTitle;
+
+    const imageUrl = String(homeMedia[section]?.[index] || '').trim();
+    const defaultImageList = defaultHomeMedia[section] || [];
+    const defaultTitleList = defaultHomeMedia[titleSection] || [];
+    const matchedDefaultIndex = defaultImageList.findIndex((item) => item === imageUrl);
+
+    if (matchedDefaultIndex >= 0) {
+      return defaultTitleList[matchedDefaultIndex] || '';
+    }
+
+    if (section === 'featuredImages') return `Featured ${index + 1}`;
+    if (section === 'shopByBasketballImages') return `Shop Item ${index + 1}`;
+    return '';
+  };
+
+  const renameMediaSlot = async (section, index) => {
+    const titleSection = getTitleSection(section);
+    if (!titleSection) return;
+
+    const currentValue = getResolvedMediaTitle(section, index);
+    const nextValue = window.prompt('Enter a new title', currentValue);
+    if (nextValue === null) return;
+
+    try {
+      await syncHomeMediaState((prev) => {
+        const nextTitles = [...(Array.isArray(prev[titleSection]) ? prev[titleSection] : [])];
+        nextTitles[index] = String(nextValue).trim();
+        return { ...prev, [titleSection]: nextTitles };
+      });
+    } catch (_error) {}
+  };
+
+  const addMediaSlot = async (section) => {
+    const titleSection = getTitleSection(section);
+    try {
+      await syncHomeMediaState((prev) => {
+        const currentItems = [...(Array.isArray(prev[section]) ? prev[section] : [])];
+        const nextItems = section === 'heroImages' ? [...currentItems, ''] : ['', ...currentItems];
+        const nextState = { ...prev, [section]: nextItems };
+
+        if (titleSection) {
+          const currentTitles = [...(Array.isArray(prev[titleSection]) ? prev[titleSection] : [])];
+          nextState[titleSection] = ['', ...currentTitles];
+        }
+
+        return nextState;
+      });
+    } catch (_error) {}
+  };
+
+  const removeMediaSlot = async (section, index) => {
+    const titleSection = getTitleSection(section);
+    try {
+      await syncHomeMediaState((prev) => {
+        const nextList = [...(Array.isArray(prev[section]) ? prev[section] : [])];
+        nextList.splice(index, 1);
+        const nextState = { ...prev, [section]: nextList.length ? nextList : [...(defaultHomeMedia[section] || [])] };
+        if (titleSection) {
+          const nextTitles = [...(Array.isArray(prev[titleSection]) ? prev[titleSection] : [])];
+          nextTitles.splice(index, 1);
+          nextState[titleSection] = nextTitles.length ? nextTitles : [...(defaultHomeMedia[titleSection] || [])];
+        }
+        return nextState;
       });
     } catch (_error) {}
   };
@@ -649,6 +839,8 @@ export default function AdminPanel() {
 
   const renderMediaField = (section, index, label, className) => {
     const imageUrl = homeMedia[section]?.[index] || '';
+    const titleSection = getTitleSection(section);
+    const resolvedTitle = titleSection ? getResolvedMediaTitle(section, index) : '';
     const inputId = `${section}-${index}`;
 
     return (
@@ -663,20 +855,35 @@ export default function AdminPanel() {
         {imageUrl ? (
           <img src={imageUrl} alt={label} />
         ) : (
-          <div className="media-empty-state">{label}</div>
+          <div className="media-empty-state">
+            {titleSection ? (
+              <span className="media-empty-title">{resolvedTitle || 'Untitled card'}</span>
+            ) : (
+              label
+            )}
+          </div>
         )}
         <div className="media-overlay">
           <div className="media-overlay-content">
-            <strong>{label}</strong>
+            {!titleSection ? <strong>{label}</strong> : null}
+            {resolvedTitle ? <span className="media-custom-title">{resolvedTitle}</span> : null}
             <div className="inline-actions">
               <button type="button" className="btn-primary" onClick={() => openMediaPicker(inputId)}>
                 {imageUrl ? 'Replace' : 'Add'}
               </button>
-              {imageUrl ? (
+              {imageUrl && !titleSection ? (
                 <button type="button" className="btn-danger" onClick={() => clearMediaSlot(section, index)}>
-                  Delete
+                  Remove Image
                 </button>
               ) : null}
+              {titleSection ? (
+                <button type="button" className="btn-secondary" onClick={() => renameMediaSlot(section, index)}>
+                  Rename
+                </button>
+              ) : null}
+              <button type="button" className="btn-secondary" onClick={() => removeMediaSlot(section, index)}>
+                Remove Slot
+              </button>
             </div>
           </div>
         </div>
@@ -699,13 +906,21 @@ export default function AdminPanel() {
           ['background', 'Edit Background'],
           ['dashboard', 'Dashboard'],
           ['products', 'Products'],
+          ['categories', 'Categories'],
+          ['vouchers', 'Vouchers'],
           ['orders', 'Orders'],
           ['users', 'Users'],
         ].map(([key, label]) => (
           <button
             key={key}
             className={`menu-item ${activeTab === key ? 'active' : ''}`}
-            onClick={() => setActiveTab(key)}
+            onClick={() => {
+              if (key === 'categories') {
+                router.push('/admin/categories');
+                return;
+              }
+              setActiveTab(key);
+            }}
             type="button"
           >
             {label}
@@ -895,30 +1110,54 @@ export default function AdminPanel() {
           <div className="home-media-section">
             <div className="home-media-heading">
               <span className="eyebrow">Hero</span>
-              <h3>Home Background</h3>
+              <div className="home-media-title-actions">
+                <h3>Home Background</h3>
+                <button type="button" className="btn-secondary" onClick={() => addMediaSlot('heroImages')}>
+                  + Add Image
+                </button>
+              </div>
             </div>
             <div className="home-hero-preview">
               {heroSlotLabels.map((label, index) => renderMediaField('heroImages', index, label, 'home-hero-slot'))}
+              {(homeMedia.heroImages || []).slice(heroSlotLabels.length).map((_, extraIndex) =>
+                renderMediaField('heroImages', heroSlotLabels.length + extraIndex, `Hero Slide ${heroSlotLabels.length + extraIndex + 1}`, 'home-hero-slot')
+              )}
             </div>
           </div>
 
           <div className="home-media-section">
             <div className="home-media-heading">
               <span className="eyebrow">Featured</span>
-              <h3>Featured Products</h3>
+              <div className="home-media-title-actions">
+                <h3>Featured Products</h3>
+                <button type="button" className="btn-secondary" onClick={() => addMediaSlot('featuredImages')}>
+                  + Add Image
+                </button>
+              </div>
             </div>
             <div className="home-featured-preview">
               {featuredSlotLabels.map((label, index) => renderMediaField('featuredImages', index, label, 'home-featured-slot'))}
+              {(homeMedia.featuredImages || []).slice(featuredSlotLabels.length).map((_, extraIndex) =>
+                renderMediaField('featuredImages', featuredSlotLabels.length + extraIndex, `Featured Slot ${featuredSlotLabels.length + extraIndex + 1}`, 'home-featured-slot')
+              )}
             </div>
           </div>
 
           <div className="home-media-section">
             <div className="home-media-heading">
               <span className="eyebrow">Categories</span>
-              <h3>Shop by Basketball</h3>
+              <div className="home-media-title-actions">
+                <h3>Shop by Basketball</h3>
+                <button type="button" className="btn-secondary" onClick={() => addMediaSlot('shopByBasketballImages')}>
+                  + Add Image
+                </button>
+              </div>
             </div>
             <div className="home-shop-preview">
               {shopSlotLabels.map((label, index) => renderMediaField('shopByBasketballImages', index, label, 'home-shop-slot'))}
+              {(homeMedia.shopByBasketballImages || []).slice(shopSlotLabels.length).map((_, extraIndex) =>
+                renderMediaField('shopByBasketballImages', shopSlotLabels.length + extraIndex, `Shop Slot ${shopSlotLabels.length + extraIndex + 1}`, 'home-shop-slot')
+              )}
             </div>
           </div>
         </div>
@@ -1373,6 +1612,93 @@ export default function AdminPanel() {
     </section>
   );
 
+  const renderVouchers = () => (
+    <section className="panel-card">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Promotions</p>
+          <h2>Vouchers</h2>
+        </div>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            setEditingVoucher(null);
+            setVoucherForm(initialVoucherForm);
+            setShowVoucherModal(true);
+          }}
+        >
+          + Add Voucher
+        </button>
+      </div>
+
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Discount</th>
+              <th>Description</th>
+              <th>Used</th>
+              <th>Limit</th>
+              <th>Remaining</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="10">Loading vouchers...</td>
+              </tr>
+            ) : vouchers.length ? vouchers.map((voucher) => {
+              const voucherStatus = voucher.computed_status || (voucher.active ? 'active' : 'inactive');
+              const voucherStatusClass = voucherStatus === 'active'
+                ? 'status-delivered'
+                : voucherStatus === 'scheduled'
+                  ? 'status-processing'
+                  : 'status-cancelled';
+              const voucherStatusLabel = voucherStatus === 'active'
+                ? 'Active'
+                : voucherStatus === 'scheduled'
+                  ? 'Scheduled'
+                  : 'Inactive';
+
+              return (
+              <tr key={voucher.id}>
+                <td><strong>{voucher.code}</strong></td>
+                <td>{voucher.discount_percent}%</td>
+                <td>{voucher.description || '-'}</td>
+                <td>{voucher.use_count || 0}</td>
+                <td>{voucher.max_uses ?? 'Unlimited'}</td>
+                <td>{voucher.remaining_uses ?? 'Unlimited'}</td>
+                <td>{voucher.starts_at ? new Date(voucher.starts_at).toLocaleString() : '-'}</td>
+                <td>{voucher.ends_at ? new Date(voucher.ends_at).toLocaleString() : '-'}</td>
+                <td>
+                  <span className={`status-pill ${voucherStatusClass}`}>
+                    {voucherStatusLabel}
+                  </span>
+                </td>
+                <td>
+                  <div className="action-stack">
+                    <button type="button" className="btn-secondary" onClick={() => openVoucherModal(voucher)}>Edit</button>
+                    <button type="button" className="btn-danger" onClick={() => handleDeleteVoucher(voucher.id)}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            )}) : (
+              <tr>
+                <td colSpan="10">No vouchers found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+
   const renderUserModal = () => (
     <div className="modal-overlay" onClick={() => setShowUserModal(false)}>
       <div className="modal-card user-modal" onClick={(e) => e.stopPropagation()}>
@@ -1409,6 +1735,59 @@ export default function AdminPanel() {
               <button type="button" className="btn-secondary" onClick={() => setShowUserModal(false)}>Cancel</button>
               <button type="button" className="btn-primary" onClick={handleSaveUser}>Save</button>
             </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderVoucherModal = () => (
+    <div className="modal-overlay" onClick={() => setShowVoucherModal(false)}>
+      <div className="modal-card user-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <p className="eyebrow">Vouchers</p>
+            <h3>{editingVoucher ? 'Edit Voucher' : 'Add Voucher'}</h3>
+          </div>
+          <button type="button" className="icon-button" onClick={() => setShowVoucherModal(false)}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="form-grid">
+            <label>
+              <span>Code</span>
+              <input value={voucherForm.code} onChange={(e) => setVoucherForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))} />
+            </label>
+            <label>
+              <span>Discount (%)</span>
+              <input type="number" min="1" max="100" value={voucherForm.discount_percent} onChange={(e) => setVoucherForm((prev) => ({ ...prev, discount_percent: e.target.value }))} />
+            </label>
+            <label className="full">
+              <span>Description</span>
+              <input value={voucherForm.description} onChange={(e) => setVoucherForm((prev) => ({ ...prev, description: e.target.value }))} />
+            </label>
+            <label>
+              <span>Max uses</span>
+              <input type="number" min="1" value={voucherForm.max_uses} onChange={(e) => setVoucherForm((prev) => ({ ...prev, max_uses: e.target.value }))} placeholder="Unlimited" />
+            </label>
+            <label>
+              <span>Status</span>
+              <select value={voucherForm.active ? 'active' : 'inactive'} onChange={(e) => setVoucherForm((prev) => ({ ...prev, active: e.target.value === 'active' }))}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <label>
+              <span>Starts at</span>
+              <input type="datetime-local" value={voucherForm.starts_at} onChange={(e) => setVoucherForm((prev) => ({ ...prev, starts_at: e.target.value }))} />
+            </label>
+            <label>
+              <span>Ends at</span>
+              <input type="datetime-local" value={voucherForm.ends_at} onChange={(e) => setVoucherForm((prev) => ({ ...prev, ends_at: e.target.value }))} />
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn-secondary" onClick={() => setShowVoucherModal(false)}>Cancel</button>
+            <button type="button" className="btn-primary" onClick={handleSaveVoucher}>Save</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1459,7 +1838,12 @@ export default function AdminPanel() {
               <span>Size</span>
               <div className="chip-grid">
                 {availableSizeOptions.map((size) => (
-                  <button key={size} type="button" className={`chip ${productForm.sizes.includes(size) ? 'active' : ''}`} onClick={() => toggleSize(size)}>
+                  <button
+                    key={size}
+                    type="button"
+                    className={`chip ${productForm.sizes.includes(size) ? 'active' : ''}`}
+                    onClick={() => toggleSize(size)}
+                  >
                     {size}
                   </button>
                 ))}
@@ -1478,7 +1862,7 @@ export default function AdminPanel() {
                       onChange={(e) => updateStockBySize(size, e.target.value)}
                     />
                   </label>
-                )) : <p className="muted">Chọn size trước để nhập số lượng theo size.</p>}
+                )) : <p className="muted">chọn size để nhập số lượng.</p>}
               </div>
             </div>
             <div className="full">
@@ -1493,10 +1877,6 @@ export default function AdminPanel() {
                     <option key={cat.id || cat.name || cat} value={cat.name || cat}>{cat.name || cat}</option>
                   ))}
                 </select>
-                <div className="category-add">
-                  <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Thêm danh mục mới" />
-                  <button type="button" className="btn-secondary" onClick={handleAddCategory}>Add</button>
-                </div>
               </div>
             </div>
             <div className="full">
@@ -1519,27 +1899,41 @@ export default function AdminPanel() {
     </div>
   );
 
-  return (
-    <div className="admin-shell">
-      {renderSidebar()}
-      <main className="admin-main">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">ShoeShoe Admin</p>
-            <h1>{activeTab === 'background' ? 'Edit Background' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
-          </div>
-        </header>
+  if (!accessChecked) {
+    return (
+      <div className="admin-page">
+        <Navbar />
+        <div className="admin-access-loading">Checking admin access...</div>
+      </div>
+    );
+  }
 
-        {error && <div className="error-banner">{error}</div>}
-        {activeTab === 'background' && renderBackground()}
-        {activeTab === 'dashboard' && renderDashboard()}
-        {activeTab === 'products' && renderProducts()}
-        {activeTab === 'orders' && renderOrders()}
-        {activeTab === 'users' && renderUsers()}
-        {showProductModal && renderProductModal()}
-        {showOrderModal && renderOrderModal()}
-        {showUserModal && renderUserModal()}
-      </main>
+  return (
+    <div className="admin-page">
+      <Navbar />
+      <div className="admin-shell">
+        {renderSidebar()}
+        <main className="admin-main">
+          <header className="topbar">
+            <div>
+              <p className="eyebrow">ShoeShoe Admin</p>
+              <h1>{activeTab === 'background' ? 'Edit Background' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            </div>
+          </header>
+
+          {error && <div className="error-banner">{error}</div>}
+          {activeTab === 'background' && renderBackground()}
+          {activeTab === 'dashboard' && renderDashboard()}
+          {activeTab === 'products' && renderProducts()}
+          {activeTab === 'vouchers' && renderVouchers()}
+          {activeTab === 'orders' && renderOrders()}
+          {activeTab === 'users' && renderUsers()}
+          {showProductModal && renderProductModal()}
+          {showOrderModal && renderOrderModal()}
+          {showUserModal && renderUserModal()}
+          {showVoucherModal && renderVoucherModal()}
+        </main>
+      </div>
     </div>
   );
 }
