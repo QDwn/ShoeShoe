@@ -137,13 +137,13 @@ export default function AdminCategoriesPage() {
 
       <nav className="admin-menu">
         {[
-          ['background', 'Edit Background', '/admin'],
-          ['dashboard', 'Dashboard', '/admin'],
-          ['products', 'Products', '/admin'],
+          ['background', 'Edit Background', '/admin/background'],
+          ['dashboard', 'Dashboard', '/admin/dashboard'],
+          ['products', 'Products', '/admin/products'],
           ['categories', 'Categories', '/admin/categories'],
-          ['vouchers', 'Vouchers', '/admin'],
-          ['orders', 'Orders', '/admin'],
-          ['users', 'Users', '/admin'],
+          ['vouchers', 'Vouchers', '/admin/vouchers'],
+          ['orders', 'Orders', '/admin/orders'],
+          ['users', 'Users', '/admin/users'],
         ].map(([key, label, href]) => (
           <button
             key={key}

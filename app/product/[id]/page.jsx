@@ -217,6 +217,22 @@ export default function ProductDetailPage() {
     fetchReviewEligibility(currentUser?.id);
   }, [productId, currentUser?.id]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!reviews.length) return;
+
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const targetId = hash.replace('#', '');
+    const target = document.getElementById(targetId);
+    if (target) {
+      window.requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [reviews, reviewsLoading]);
+
   const fetchProduct = async () => {
     if (!productId) return;
     
@@ -895,7 +911,7 @@ export default function ProductDetailPage() {
             ) : reviews.length > 0 ? (
               <div className="review-list">
                 {reviews.map((review) => (
-                  <div key={review.id} className="review-item">
+                  <div key={review.id} id={`review-${review.id}`} className="review-item">
                     <div className="review-avatar-wrap">
                       {review.user_avatar ? (
                         <img src={review.user_avatar} alt={review.user_name || 'User'} className="review-avatar" />
