@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../src/components/Navbar';
@@ -25,6 +25,22 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoStatus, setPromoStatus] = useState('');
+  const [orderNotice, setOrderNotice] = useState(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('last_order_notice');
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw);
+      if (!parsed?.message) return;
+
+      setOrderNotice(parsed);
+      localStorage.removeItem('last_order_notice');
+    } catch {
+      localStorage.removeItem('last_order_notice');
+    }
+  }, []);
 
   const handleQty = (id, qty) => {
     const q = Math.max(1, parseInt(qty, 10) || 1);
@@ -102,6 +118,21 @@ export default function CartPage() {
       ) : null}
       {!canUseCart ? null : (
         <>
+          {orderNotice && (
+            <div
+              className="checkout-status success"
+              style={{
+                marginBottom: '18px',
+                position: 'sticky',
+                top: '12px',
+                zIndex: 10,
+                boxShadow: '0 12px 28px rgba(22, 101, 52, 0.12)',
+              }}
+            >
+              {orderNotice.message}
+            </div>
+          )}
+
           <header className="cart-header">
             <div>
               <h1 className="cart-title">

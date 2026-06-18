@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [debugVerificationLink, setDebugVerificationLink] = useState('');
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -38,8 +39,7 @@ export default function RegisterPage() {
       if (response.ok) {
         setMessage(`✓ ${data.message || t('auth.registerSuccess')}`);
         setIsSuccess(true);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        window.dispatchEvent(new Event('user-changed'));
+        setDebugVerificationLink(data.verificationLink || '');
         setRegisterEmail('');
         setRegisterPassword('');
         setConfirmPassword('');
@@ -49,6 +49,7 @@ export default function RegisterPage() {
           window.location.href = '/login';
         }, 1500);
       } else {
+        setDebugVerificationLink('');
         setMessage(`✕ ${data.message || t('auth.registerFailed')}`);
       }
     } catch {
@@ -73,6 +74,25 @@ export default function RegisterPage() {
           }}
           >
             {message}
+          </div>
+        )}
+
+        {debugVerificationLink && (
+          <div
+            style={{
+              marginBottom: '15px',
+              padding: '10px',
+              borderRadius: '5px',
+              background: '#fff3cd',
+              color: '#92400e',
+              fontSize: '13px',
+              wordBreak: 'break-all',
+            }}
+          >
+            DEV verification link:<br />
+            <Link href={debugVerificationLink} style={{ color: '#b45309', fontWeight: 'bold' }}>
+              {debugVerificationLink}
+            </Link>
           </div>
         )}
 

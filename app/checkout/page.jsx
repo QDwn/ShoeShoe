@@ -34,11 +34,20 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
+  const [flashNotice, setFlashNotice] = useState(null);
 
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('user');
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
       setIsLoggedIn(!!storedUser);
+
+      if (parsedUser?.email) {
+        setShipping((prev) => ({
+          ...prev,
+          email: prev.email || parsedUser.email || '',
+        }));
+      }
 
       const buyNowRaw = localStorage.getItem('buy_now_item');
       const checkoutRaw = localStorage.getItem('checkout_state');
@@ -167,9 +176,27 @@ export default function CheckoutPage() {
       localStorage.removeItem('buy_now_item');
       localStorage.removeItem('checkout_cart');
       localStorage.removeItem('checkout_state');
-      setStatus(t('checkout.orderPlaced').replace('{orderId}', data.orderId));
+      const orderPlacedMessage = t('checkout.orderPlaced').replace('{orderId}', data.orderId);
+      const emailMessage = data.email_status === 'sent'
+        ? ' Confirmation email has been sent.'
+        : data.email_status === 'failed'
+          ? ' The order was placed, but the confirmation email could not be sent.'
+          : '';
+      const finalMessage = `${orderPlacedMessage}${emailMessage}`;
+      setStatus(finalMessage);
       setStatusTone('success');
-      setTimeout(() => router.push('/cart'), 1200);
+      setFlashNotice(finalMessage);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'last_order_notice',
+          JSON.stringify({
+            message: finalMessage,
+            tone: 'success',
+            createdAt: Date.now(),
+          })
+        );
+      }
+      setTimeout(() => router.push('/cart'), 3500);
     } catch (err) {
       setStatus(err.message);
       setStatusTone('error');
@@ -193,6 +220,26 @@ export default function CheckoutPage() {
     <div className="checkout-page">
       <Navbar />
       <div className="checkout-shell">
+        {flashNotice && (
+          <div
+            style={{
+              position: 'sticky',
+              top: 12,
+              zIndex: 20,
+              marginBottom: 20,
+              padding: '16px 18px',
+              borderRadius: 16,
+              background: '#ecfdf3',
+              border: '1px solid #86efac',
+              color: '#166534',
+              fontWeight: 700,
+              boxShadow: '0 12px 28px rgba(22, 101, 52, 0.12)',
+            }}
+          >
+            {flashNotice}
+          </div>
+        )}
+
         {!isLoggedIn && (
           <div className="checkout-top-login">
             <div>{t('checkout.loginBenefits')}</div>
